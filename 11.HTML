@@ -4,23 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover, maximum-scale=1.0">
     <title>📍 社群位置監控 + 歷史軌跡分析</title>
-
     <!-- Supabase SDK -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js">
-    </script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <!-- EmailJS SDK -->
-    <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js">
-    </script>
-    <!-- Leaflet CSS + JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+    <!-- Leaflet -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
-    </script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <!-- Leaflet.Heat -->
-    <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js">
-    </script>
+    <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
     <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js">
-    </script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
 
     <style>
         :root {
@@ -39,11 +33,7 @@
             --radius: 14px;
             --radius-sm: 10px;
         }
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin:0; padding:0; box-sizing:border-box; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang TC', 'Noto Sans TC', sans-serif;
             background: var(--bg);
@@ -54,301 +44,56 @@
             align-items: center;
             padding: 10px;
             padding-bottom: 50px;
-            -webkit-tap-highlight-color: transparent;
         }
-        .app-container {
-            width: 100%;
-            max-width: 500px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-        .tab-nav {
-            display: flex;
-            gap: 6px;
-            background: var(--surface);
-            border-radius: var(--radius);
-            padding: 4px;
-            border: 1px solid var(--border);
-        }
-        .tab-btn {
-            flex: 1;
-            padding: 10px;
-            border-radius: var(--radius-sm);
-            background: transparent;
-            color: var(--text2);
-            font-weight: 700;
-            font-size: 0.8rem;
-            text-align: center;
-            cursor: pointer;
-            border: none;
-            transition: 0.2s;
-        }
-        .tab-btn.active {
-            background: var(--accent);
-            color: #000;
-        }
-        .card {
-            background: var(--surface);
-            border-radius: var(--radius);
-            border: 1px solid var(--border);
-            padding: 14px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-        .card-title {
-            font-size: 0.9rem;
-            font-weight: 700;
-        }
-        .btn {
-            padding: 10px 16px;
-            border-radius: 25px;
-            border: none;
-            font-weight: 700;
-            font-size: 0.8rem;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 5px;
-            transition: 0.2s;
-            font-family: inherit;
-        }
-        .btn:active {
-            transform: scale(0.95);
-        }
-        .btn-primary {
-            background: var(--accent);
-            color: #000;
-        }
-        .btn-outline {
-            background: transparent;
-            color: var(--accent);
-            border: 2px solid var(--accent);
-        }
-        .btn-sm {
-            padding: 6px 12px;
-            font-size: 0.7rem;
-        }
-        .btn-success {
-            background: var(--success);
-            color: #000;
-        }
-        .btn-danger {
-            background: transparent;
-            color: var(--danger);
-            border: 2px solid var(--danger);
-        }
-        .input-group {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-        }
-        .input-group label {
-            font-size: 0.7rem;
-            font-weight: 700;
-            color: var(--text2);
-            text-transform: uppercase;
-            letter-spacing: 0.04em;
-        }
-        .input-group input,
-        .input-group select {
-            background: var(--surface2);
-            border: 1px solid var(--border);
-            border-radius: var(--radius-sm);
-            padding: 8px 12px;
-            color: var(--text);
-            font-size: 0.8rem;
-            font-family: inherit;
-            outline: none;
-        }
-        .input-group input:focus {
-            border-color: var(--accent);
-        }
-        .map-container {
-            height: 280px;
-            border-radius: var(--radius-sm);
-            overflow: hidden;
-            border: 1px solid var(--border);
-        }
-        .stats-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 8px;
-        }
-        .stat-item {
-            background: var(--surface2);
-            border-radius: var(--radius-sm);
-            padding: 12px;
-            text-align: center;
-        }
-        .stat-value {
-            font-size: 1.4rem;
-            font-weight: 700;
-            color: var(--accent);
-        }
-        .stat-label {
-            font-size: 0.65rem;
-            color: var(--text2);
-        }
-        .chart-container {
-            height: 200px;
-        }
-        .list-item {
-            background: var(--surface2);
-            border-radius: var(--radius-sm);
-            padding: 10px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 0.75rem;
-            margin-bottom: 4px;
-            flex-wrap: wrap;
-        }
-        .toast-container {
-            position: fixed;
-            top: 16px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 9999;
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-            pointer-events: none;
-            width: 90%;
-            max-width: 420px;
-        }
-        .toast {
-            padding: 10px 16px;
-            border-radius: 22px;
-            font-weight: 600;
-            font-size: 0.8rem;
-            text-align: center;
-            animation: toastIn 0.3s, toastOut 0.3s 2.7s forwards;
-            pointer-events: auto;
-            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
-        }
-        .toast.success {
-            background: #1a3a2a;
-            color: var(--success);
-            border: 1px solid #2a5a3a;
-        }
-        .toast.error {
-            background: #3a1a1a;
-            color: var(--danger);
-            border: 1px solid #5a2a2a;
-        }
-        .toast.info {
-            background: #1a2a3a;
-            color: var(--accent);
-            border: 1px solid #2a3a5a;
-        }
-        @keyframes toastIn {
-            from {
-                opacity: 0;
-                transform: translateY(-20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        @keyframes toastOut {
-            from {
-                opacity: 1;
-            }
-            to {
-                opacity: 0;
-                transform: translateY(-15px);
-            }
-        }
-        .hidden {
-            display: none !important;
-        }
-        .toggle-row {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-        .toggle-label {
-            font-size: 0.75rem;
-            font-weight: 600;
-        }
-        .switch {
-            position: relative;
-            display: inline-block;
-            width: 40px;
-            height: 24px;
-        }
-        .switch input {
-            opacity: 0;
-            width: 0;
-            height: 0;
-        }
-        .slider-toggle {
-            position: absolute;
-            cursor: pointer;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: #444;
-            transition: .3s;
-            border-radius: 24px;
-        }
-        .slider-toggle:before {
-            position: absolute;
-            content: "";
-            height: 18px;
-            width: 18px;
-            left: 3px;
-            bottom: 3px;
-            background-color: white;
-            transition: .3s;
-            border-radius: 50%;
-        }
-        input:checked+.slider-toggle {
-            background-color: var(--accent);
-        }
-        input:checked+.slider-toggle:before {
-            transform: translateX(16px);
-        }
-        @media print {
-            body * {
-                visibility: hidden;
-            }
-            #printArea,
-            #printArea * {
-                visibility: visible;
-            }
-            #printArea {
-                position: absolute;
-                left: 0;
-                top: 0;
-                width: 100%;
-            }
-            .no-print {
-                display: none !important;
-            }
-        }
-        ::-webkit-scrollbar {
-            width: 3px;
-        }
-        ::-webkit-scrollbar-track {
-            background: transparent;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #333;
-            border-radius: 3px;
-        }
+        .app-container { width:100%; max-width:500px; display:flex; flex-direction:column; gap:10px; }
+        .tab-nav { display:flex; gap:6px; background:var(--surface); border-radius:var(--radius); padding:4px; border:1px solid var(--border); }
+        .tab-btn { flex:1; padding:10px; border-radius:var(--radius-sm); background:transparent; color:var(--text2); font-weight:700; font-size:0.8rem; text-align:center; cursor:pointer; border:none; transition:0.2s; }
+        .tab-btn.active { background:var(--accent); color:#000; }
+        .card { background:var(--surface); border-radius:var(--radius); border:1px solid var(--border); padding:14px; display:flex; flex-direction:column; gap:10px; }
+        .card-title { font-size:0.9rem; font-weight:700; }
+        .btn { padding:10px 16px; border-radius:25px; border:none; font-weight:700; font-size:0.8rem; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:5px; transition:0.2s; font-family:inherit; }
+        .btn:active { transform:scale(0.95); }
+        .btn-primary { background:var(--accent); color:#000; }
+        .btn-outline { background:transparent; color:var(--accent); border:2px solid var(--accent); }
+        .btn-sm { padding:6px 12px; font-size:0.7rem; }
+        .btn-danger { background:transparent; color:var(--danger); border:2px solid var(--danger); }
+        .input-group { display:flex; flex-direction:column; gap:4px; }
+        .input-group label { font-size:0.7rem; font-weight:700; color:var(--text2); text-transform:uppercase; letter-spacing:0.04em; }
+        .input-group input, .input-group select { background:var(--surface2); border:1px solid var(--border); border-radius:var(--radius-sm); padding:8px 12px; color:var(--text); font-size:0.8rem; font-family:inherit; outline:none; }
+        .input-group input:focus { border-color:var(--accent); }
+        .map-container { height:280px; border-radius:var(--radius-sm); overflow:hidden; border:1px solid var(--border); }
+        .stats-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+        .stat-item { background:var(--surface2); border-radius:var(--radius-sm); padding:12px; text-align:center; }
+        .stat-value { font-size:1.4rem; font-weight:700; color:var(--accent); }
+        .stat-label { font-size:0.65rem; color:var(--text2); }
+        .chart-container { height:200px; }
+        .list-item { background:var(--surface2); border-radius:var(--radius-sm); padding:10px; display:flex; align-items:center; gap:8px; font-size:0.75rem; margin-bottom:4px; flex-wrap:wrap; }
+        .toast-container { position:fixed; top:16px; left:50%; transform:translateX(-50%); z-index:9999; display:flex; flex-direction:column; gap:6px; pointer-events:none; width:90%; max-width:420px; }
+        .toast { padding:10px 16px; border-radius:22px; font-weight:600; font-size:0.8rem; text-align:center; animation:toastIn 0.3s, toastOut 0.3s 2.7s forwards; pointer-events:auto; box-shadow:0 8px 30px rgba(0,0,0,0.5); }
+        .toast.success { background:#1a3a2a; color:var(--success); border:1px solid #2a5a3a; }
+        .toast.error { background:#3a1a1a; color:var(--danger); border:1px solid #5a2a2a; }
+        .toast.info { background:#1a2a3a; color:var(--accent); border:1px solid #2a3a5a; }
+        @keyframes toastIn { from{opacity:0;transform:translateY(-20px);} to{opacity:1;transform:translateY(0);} }
+        @keyframes toastOut { from{opacity:1;} to{opacity:0;transform:translateY(-15px);} }
+        .hidden { display:none!important; }
+        .toggle-row { display:flex; align-items:center; gap:12px; }
+        .toggle-label { font-size:0.75rem; font-weight:600; }
+        .switch { position:relative; display:inline-block; width:40px; height:24px; }
+        .switch input { opacity:0; width:0; height:0; }
+        .slider-toggle { position:absolute; cursor:pointer; top:0; left:0; right:0; bottom:0; background-color:#444; transition:.3s; border-radius:24px; }
+        .slider-toggle:before { position:absolute; content:""; height:18px; width:18px; left:3px; bottom:3px; background-color:white; transition:.3s; border-radius:50%; }
+        input:checked+.slider-toggle { background-color:var(--accent); }
+        input:checked+.slider-toggle:before { transform:translateX(16px); }
+        @media print { body * { visibility:hidden; } #printArea, #printArea * { visibility:visible; } #printArea { position:absolute; left:0; top:0; width:100%; } .no-print { display:none!important; } }
+        ::-webkit-scrollbar { width:3px; }
+        ::-webkit-scrollbar-track { background:transparent; }
+        ::-webkit-scrollbar-thumb { background:#333; border-radius:3px; }
     </style>
 </head>
 <body>
-
     <div class="toast-container" id="toastContainer"></div>
 
-    <!-- ========== 登入頁面 ========== -->
+    <!-- 登入頁面 -->
     <div class="app-container" id="authPage">
         <div class="card" style="text-align:center; padding:30px;">
             <h2 style="background:linear-gradient(135deg,#5b9cf5,#c084fc);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">📍 社群位置監控</h2>
@@ -356,36 +101,23 @@
         </div>
         <div class="card" id="loginCard">
             <div class="card-title">🔐 登入 / 註冊</div>
-            <div class="input-group">
-                <label>Email</label>
-                <input type="email" id="authEmail" placeholder="you@example.com" autocomplete="email">
-            </div>
-            <div class="input-group">
-                <label>密碼 (至少 6 碼)</label>
-                <input type="password" id="authPassword" placeholder="••••••" autocomplete="current-password">
-            </div>
-            <div class="input-group hidden" id="nicknameGroup">
-                <label>顯示名稱</label>
-                <input type="text" id="authNickname" placeholder="你的暱稱">
-            </div>
+            <div class="input-group"><label>Email</label><input type="email" id="authEmail" placeholder="you@example.com" autocomplete="email"></div>
+            <div class="input-group"><label>密碼 (至少6碼)</label><input type="password" id="authPassword" placeholder="••••••" autocomplete="current-password"></div>
+            <div class="input-group hidden" id="nicknameGroup"><label>顯示名稱</label><input type="text" id="authNickname" placeholder="你的暱稱"></div>
             <button class="btn btn-primary" id="authActionBtn" onclick="handleAuthAction()">登入</button>
             <button class="btn btn-sm btn-outline" id="authToggleBtn" onclick="toggleAuthMode()">還沒有帳號？註冊</button>
-            <div style="font-size:0.65rem;color:var(--text2);text-align:center;">
-                💡 註冊後請檢查 Email 信箱確認帳號<br>
-                🔗 Supabase 已自動連線
-            </div>
+            <div style="font-size:0.65rem;color:var(--text2);text-align:center;">💡 註冊後請檢查信箱確認帳號<br>🔗 Supabase 已自動連線</div>
         </div>
     </div>
 
-    <!-- ========== 主面板 ========== -->
+    <!-- 主面板 -->
     <div class="app-container hidden" id="mainApp">
-        <!-- Tab 導航 -->
         <div class="tab-nav no-print">
             <button class="tab-btn active" onclick="switchTab('monitor')">📍 即時監控</button>
             <button class="tab-btn" onclick="switchTab('history')">📊 歷史分析</button>
         </div>
 
-        <!-- 即時監控面板 -->
+        <!-- 即時監控 -->
         <div id="monitorTab">
             <div class="card">
                 <div class="card-title">🛰️ 我的位置</div>
@@ -396,38 +128,28 @@
                 </div>
             </div>
             <div class="card">
-                <div class="card-title">🧑‍🤝‍🧑 好友位置（可移動目標）</div>
-                <div id="friendList" style="max-height:200px; overflow-y:auto;">
-                    <div style="text-align:center;color:var(--text2);padding:20px;">👥 尚未綁定好友</div>
-                </div>
+                <div class="card-title">🧑‍🤝‍🧑 好友位置</div>
+                <div id="friendList" style="max-height:200px; overflow-y:auto;"><div style="text-align:center;color:var(--text2);padding:20px;">👥 尚未綁定好友</div></div>
                 <button class="btn btn-sm btn-outline" onclick="showAddFriendModal()">＋ 綁定好友</button>
             </div>
             <div class="card">
-                <div class="card-title">📍 定點目標（想去的地方）</div>
-                <div id="staticTargetList" style="max-height:200px; overflow-y:auto;">
-                    <div style="text-align:center;color:var(--text2);padding:20px;">📋 尚無定點目標</div>
-                </div>
+                <div class="card-title">📍 定點目標</div>
+                <div id="staticTargetList" style="max-height:200px; overflow-y:auto;"><div style="text-align:center;color:var(--text2);padding:20px;">📋 尚無定點目標</div></div>
                 <button class="btn btn-sm btn-outline" onclick="showAddStaticTargetModal()">＋ 新增地點</button>
             </div>
             <div class="card">
                 <div class="card-title">📅 期間限定活動</div>
-                <div id="eventList" style="max-height:200px; overflow-y:auto;">
-                    <div style="text-align:center;color:var(--text2);padding:20px;">📋 尚無活動</div>
-                </div>
+                <div id="eventList" style="max-height:200px; overflow-y:auto;"><div style="text-align:center;color:var(--text2);padding:20px;">📋 尚無活動</div></div>
                 <button class="btn btn-sm btn-outline" onclick="showAddEventModal()">＋ 新增活動</button>
             </div>
         </div>
 
-        <!-- 歷史分析面板 -->
+        <!-- 歷史分析 -->
         <div id="historyTab" class="hidden">
             <div id="printArea">
                 <div class="card no-print">
                     <div class="card-title">📆 時間區間</div>
-                    <div style="display:flex; gap:10px; align-items:center;">
-                        <input type="date" id="startDate" style="flex:1;">
-                        <span>～</span>
-                        <input type="date" id="endDate" style="flex:1;">
-                    </div>
+                    <div style="display:flex; gap:10px; align-items:center;"><input type="date" id="startDate" style="flex:1;"><span>～</span><input type="date" id="endDate" style="flex:1;"></div>
                     <button class="btn btn-primary" onclick="loadHistory()">🔍 查詢軌跡</button>
                 </div>
                 <div class="card">
@@ -439,18 +161,9 @@
                         <div class="stat-item"><div class="stat-value" id="topPlace">--</div><div class="stat-label">最常停留點</div></div>
                     </div>
                 </div>
-                <div class="card">
-                    <div class="card-title">🗺️ 軌跡地圖</div>
-                    <div class="map-container" id="historyMap"></div>
-                </div>
-                <div class="card">
-                    <div class="card-title">📈 每日移動距離</div>
-                    <div class="chart-container"><canvas id="distanceChart"></canvas></div>
-                </div>
-                <div class="card">
-                    <div class="card-title">⏱️ 停留明細</div>
-                    <div id="stayTable" style="max-height:200px; overflow-y:auto;"></div>
-                </div>
+                <div class="card"><div class="card-title">🗺️ 軌跡地圖</div><div class="map-container" id="historyMap"></div></div>
+                <div class="card"><div class="card-title">📈 每日移動距離</div><div class="chart-container"><canvas id="distanceChart"></canvas></div></div>
+                <div class="card"><div class="card-title">⏱️ 停留明細</div><div id="stayTable" style="max-height:200px; overflow-y:auto;"></div></div>
             </div>
             <div class="card no-print">
                 <button class="btn btn-outline" onclick="exportCSV()">📥 匯出 CSV</button>
@@ -462,73 +175,43 @@
         <div class="card no-print">
             <div class="card-title" onclick="toggleEmailSettings()" style="cursor:pointer;">⚙️ 郵件設定 ▼</div>
             <div id="emailSettingsPanel" class="hidden">
-                <div class="input-group">
-                    <label>EmailJS Public Key</label>
-                    <input type="text" id="emailjsPublicKey" placeholder="abc123...">
-                </div>
-                <div class="input-group">
-                    <label>EmailJS Service ID</label>
-                    <input type="text" id="emailjsServiceId" placeholder="service_xxx">
-                </div>
-                <div class="input-group">
-                    <label>EmailJS Template ID</label>
-                    <input type="text" id="emailjsTemplateId" placeholder="template_xxx">
-                </div>
-                <div class="input-group">
-                    <label>預設收件人 Email</label>
-                    <input type="email" id="defaultRecipient" placeholder="me@example.com">
-                </div>
-                <div class="toggle-row">
-                    <span class="toggle-label">📬 每季寄送移動摘要</span>
-                    <label class="switch">
-                        <input type="checkbox" id="quarterlyReportToggle" onchange="toggleQuarterlyReport()">
-                        <span class="slider-toggle"></span>
-                    </label>
-                </div>
-                <button class="btn btn-sm btn-outline" onclick="saveEmailSettings()">💾 儲存郵件設定</button>
+                <div class="input-group"><label>EmailJS Public Key</label><input id="emailjsPublicKey" placeholder="abc123..."></div>
+                <div class="input-group"><label>Service ID</label><input id="emailjsServiceId" placeholder="service_xxx"></div>
+                <div class="input-group"><label>Template ID</label><input id="emailjsTemplateId" placeholder="template_xxx"></div>
+                <div class="input-group"><label>預設收件人</label><input id="defaultRecipient" placeholder="me@example.com"></div>
+                <div class="toggle-row"><span class="toggle-label">📬 每季寄送移動摘要</span><label class="switch"><input type="checkbox" id="quarterlyReportToggle" onchange="toggleQuarterlyReport()"><span class="slider-toggle"></span></label></div>
+                <button class="btn btn-sm btn-outline" onclick="saveEmailSettings()">💾 儲存</button>
                 <button class="btn btn-sm btn-outline" onclick="testEmailConfig()">🧪 測試郵件</button>
             </div>
         </div>
     </div>
 
     <script>
-        // ==================== Supabase 自動連線 ====================
+        // Supabase 連線 (已內建您的金鑰)
         const SUPABASE_URL = 'https://hknxdvefnuxgyepuuqra.supabase.co';
-        const SUPABASE_KEY =
-            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhrbnhkdmVmbnV4Z3llcHV1cXJhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1MzM0MDAsImV4cCI6MjA5NzEwOTQwMH0.M97OwM_9CrLCrgxbyA6kQs0MLFiRDzyYlvIiGqhBGec';
-        let supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhrbnhkdmVmbnV4Z3llcHV1cXJhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1MzM0MDAsImV4cCI6MjA5NzEwOTQwMH0.M97OwM_9CrLCrgxbyA6kQs0MLFiRDzyYlvIiGqhBGec';
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        // ==================== 全域變數 ====================
         let currentUser = null;
-        let tracking = false;
-        let watchId = null;
-        let currentPosition = null;
-        let historyMap = null;
-        let distanceChart = null;
-        let currentHistoryData = null;
+        let tracking = false, watchId = null, currentPosition = null;
+        let historyMap = null, distanceChart = null, currentHistoryData = null;
         let isRegisterMode = false;
         const RECORD_INTERVAL = 30000;
 
-        // ==================== 工具函數 ====================
-        function showToast(msg, type = 'info') {
-            const t = document.createElement('div');
-            t.className = `toast ${type}`;
-            t.textContent = msg;
+        function showToast(msg, type='info') {
+            const t = document.createElement('div'); t.className = `toast ${type}`; t.textContent = msg;
             document.getElementById('toastContainer').appendChild(t);
-            setTimeout(() => { if (t.parentNode) t.remove(); }, 3000);
+            setTimeout(() => { if(t.parentNode) t.remove(); }, 3000);
         }
 
-        function haversine(lat1, lng1, lat2, lng2) {
-            const R = 6371000,
-                toRad = d => d * Math.PI / 180;
-            const dLat = toRad(lat2 - lat1),
-                dLng = toRad(lng2 - lng1);
-            const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) **
-            2;
-            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        function haversine(lat1,lng1,lat2,lng2){
+            const R=6371000, toRad=d=>d*Math.PI/180;
+            const dLat=toRad(lat2-lat1), dLng=toRad(lng2-lng1);
+            const a=Math.sin(dLat/2)**2 + Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLng/2)**2;
+            return R*2*Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
         }
 
-        // ==================== 認證 ====================
+        // 認證
         function toggleAuthMode() {
             isRegisterMode = !isRegisterMode;
             document.getElementById('nicknameGroup').classList.toggle('hidden', !isRegisterMode);
@@ -539,51 +222,35 @@
         async function handleAuthAction() {
             const email = document.getElementById('authEmail').value.trim();
             const password = document.getElementById('authPassword').value;
-            if (!email || !password) { showToast('⚠️ 請填寫 Email 和密碼', 'error'); return; }
-            if (password.length < 6) { showToast('⚠️ 密碼至少 6 碼', 'error'); return; }
-
+            if(!email||!password) { showToast('⚠️ 請填寫 Email 和密碼','error'); return; }
+            if(password.length<6) { showToast('⚠️ 密碼至少 6 碼','error'); return; }
             try {
-                if (isRegisterMode) {
+                if(isRegisterMode) {
                     const nickname = document.getElementById('authNickname').value.trim();
-                    if (!nickname) { showToast('⚠️ 請填寫顯示名稱', 'error'); return; }
+                    if(!nickname) { showToast('⚠️ 請填寫顯示名稱','error'); return; }
                     const { data, error } = await supabase.auth.signUp({ email, password });
-                    if (error) throw error;
-                    if (data.user) {
-                        // 嘗試建立 profiles，如果表不存在則跳過
-                        try {
-                            await supabase.from('profiles').insert({
-                                id: data.user.id,
-                                email,
-                                nickname,
-                                is_sharing: false,
-                                quarterly_report_enabled: false
-                            });
-                        } catch (e) {
-                            console.warn('profiles 表可能不存在，請建立:', e);
-                        }
-                        showToast('✅ 註冊成功！請檢查信箱確認帳號', 'success');
+                    if(error) throw error;
+                    if(data.user) {
+                        try { await supabase.from('profiles').insert({ id:data.user.id, email, nickname, is_sharing:false, quarterly_report_enabled:false }); } catch(e) {}
+                        showToast('✅ 註冊成功！請檢查信箱確認帳號','success');
                     }
                 } else {
                     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-                    if (error) throw error;
+                    if(error) throw error;
                     currentUser = data.user;
                     showMainApp();
-                    showToast('✅ 登入成功', 'success');
+                    showToast('✅ 登入成功','success');
                 }
-            } catch (e) {
-                showToast('❌ ' + e.message, 'error', 5000);
-            }
+            } catch(e) { showToast('❌ '+e.message,'error',5000); }
         }
 
         async function handleLogout() {
-            if (tracking) stopTracking();
+            if(tracking) stopTracking();
             await supabase.auth.signOut();
             currentUser = null;
             document.getElementById('mainApp').classList.add('hidden');
             document.getElementById('authPage').classList.remove('hidden');
-            document.getElementById('authEmail').value = '';
-            document.getElementById('authPassword').value = '';
-            showToast('👋 已登出', 'info');
+            showToast('👋 已登出','info');
         }
 
         async function showMainApp() {
@@ -594,78 +261,47 @@
             loadQuarterlySettingFromDB();
         }
 
-        // ==================== 資料載入 ====================
         async function loadAllData() {
-            if (!currentUser) return;
+            if(!currentUser) return;
             try {
-                const [friendsRes, targetsRes, eventsRes] = await Promise.all([
+                const [fRes, tRes, eRes] = await Promise.all([
                     supabase.from('friendships').select('*').eq('user_id', currentUser.id),
                     supabase.from('static_targets').select('*').eq('user_id', currentUser.id),
                     supabase.from('events').select('*').eq('user_id', currentUser.id).eq('is_expired', false)
                 ]);
-                renderFriends(friendsRes.data || []);
-                renderStaticTargets(targetsRes.data || []);
-                renderEvents(eventsRes.data || []);
-            } catch (e) {
-                console.warn('載入資料時發生錯誤（可能資料表尚未建立）:', e);
-                document.getElementById('friendList').innerHTML =
-                    '<div style="text-align:center;color:var(--text2);padding:10px;">📋 請先建立資料表</div>';
-                document.getElementById('staticTargetList').innerHTML =
-                    '<div style="text-align:center;color:var(--text2);padding:10px;">📋 請先建立資料表</div>';
-                document.getElementById('eventList').innerHTML =
-                '<div style="text-align:center;color:var(--text2);padding:10px;">📋 請先建立資料表</div>';
-            }
+                renderFriends(fRes.data||[]);
+                renderStaticTargets(tRes.data||[]);
+                renderEvents(eRes.data||[]);
+            } catch(e) { console.warn('資料表可能不存在', e); }
         }
 
         function renderFriends(data) {
-            if (!data.length) {
-                document.getElementById('friendList').innerHTML =
-                    '<div style="text-align:center;color:var(--text2);padding:20px;">👥 尚未綁定好友</div>';
-                return;
-            }
-            document.getElementById('friendList').innerHTML = data.map(f => `
-                <div class="list-item" style="justify-content:space-between;">
-                    <span>🧑 ${f.friend_nickname || '好友'}</span>
-                    <span style="color:var(--text2);">半徑 ${f.alert_radius || 2000}m</span>
-                    <button class="btn btn-sm btn-danger" onclick="removeFriendship('${f.id}')">✕</button>
-                </div>
-            `).join('');
+            const el = document.getElementById('friendList');
+            if(!data.length) { el.innerHTML = '<div style="text-align:center;color:var(--text2);padding:20px;">👥 尚未綁定好友</div>'; return; }
+            el.innerHTML = data.map(f => `<div class="list-item" style="justify-content:space-between;"><span>🧑 ${f.friend_nickname||'好友'}</span><span style="color:var(--text2);">半徑 ${f.alert_radius||2000}m</span><button class="btn btn-sm btn-danger" onclick="removeFriendship('${f.id}')">✕</button></div>`).join('');
         }
-
         function renderStaticTargets(data) {
-            if (!data.length) {
-                document.getElementById('staticTargetList').innerHTML =
-                    '<div style="text-align:center;color:var(--text2);padding:20px;">📋 尚無定點目標</div>';
-                return;
-            }
-            document.getElementById('staticTargetList').innerHTML = data.map(t => `
-                <div class="list-item" style="justify-content:space-between;">
-                    <span>📍 ${t.name}</span>
-                    <span style="color:var(--text2);">半徑 ${t.alert_radius || 500}m</span>
-                    <button class="btn btn-sm btn-danger" onclick="removeStaticTarget('${t.id}')">✕</button>
-                </div>
-            `).join('');
+            const el = document.getElementById('staticTargetList');
+            if(!data.length) { el.innerHTML = '<div style="text-align:center;color:var(--text2);padding:20px;">📋 尚無定點目標</div>'; return; }
+            el.innerHTML = data.map(t => `<div class="list-item" style="justify-content:space-between;"><span>📍 ${t.name}</span><span style="color:var(--text2);">半徑 ${t.alert_radius||500}m</span><button class="btn btn-sm btn-danger" onclick="removeStaticTarget('${t.id}')">✕</button></div>`).join('');
         }
-
         function renderEvents(data) {
-            if (!data.length) {
-                document.getElementById('eventList').innerHTML =
-                    '<div style="text-align:center;color:var(--text2);padding:20px;">📅 尚無活動</div>';
-                return;
-            }
-            document.getElementById('eventList').innerHTML = data.map(e => `
-                <div class="list-item" style="justify-content:space-between;">
-                    <span>📅 ${e.name}</span>
-                    <span style="color:var(--text2);">${e.end_date || ''}</span>
-                    <button class="btn btn-sm btn-danger" onclick="removeEvent('${e.id}')">✕</button>
-                </div>
-            `).join('');
+            const el = document.getElementById('eventList');
+            if(!data.length) { el.innerHTML = '<div style="text-align:center;color:var(--text2);padding:20px;">📅 尚無活動</div>'; return; }
+            el.innerHTML = data.map(e => `<div class="list-item" style="justify-content:space-between;"><span>📅 ${e.name}</span><span style="color:var(--text2);">${e.end_date||''}</span><button class="btn btn-sm btn-danger" onclick="removeEvent('${e.id}')">✕</button></div>`).join('');
         }
 
-        // ==================== Tab 切換 ====================
+        // 簡化：好友/目標/活動的新增與刪除
+        async function showAddFriendModal() { showToast('🔧 功能開發中，請使用完整版','info'); }
+        async function showAddStaticTargetModal() { showToast('🔧 功能開發中','info'); }
+        async function showAddEventModal() { showToast('🔧 功能開發中','info'); }
+        async function removeFriendship(id) { await supabase.from('friendships').delete().eq('id',id); loadAllData(); }
+        async function removeStaticTarget(id) { await supabase.from('static_targets').delete().eq('id',id); loadAllData(); }
+        async function removeEvent(id) { await supabase.from('events').update({is_expired:true}).eq('id',id); loadAllData(); }
+
         function switchTab(tab) {
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            if (tab === 'monitor') {
+            if(tab==='monitor') {
                 document.querySelector('.tab-btn:nth-child(1)').classList.add('active');
                 document.getElementById('monitorTab').classList.remove('hidden');
                 document.getElementById('historyTab').classList.add('hidden');
@@ -675,130 +311,151 @@
                 document.getElementById('historyTab').classList.remove('hidden');
                 const now = new Date();
                 document.getElementById('endDate').value = now.toISOString().split('T')[0];
-                const lastWeek = new Date(now.getTime() - 7 * 86400000);
-                document.getElementById('startDate').value = lastWeek.toISOString().split('T')[0];
+                document.getElementById('startDate').value = new Date(now-7*86400000).toISOString().split('T')[0];
                 setTimeout(initHistoryMap, 300);
             }
         }
 
-        // ==================== GPS ====================
-        function toggleTracking() {
-            if (tracking) stopTracking();
-            else startTracking();
-        }
-
+        function toggleTracking() { tracking ? stopTracking() : startTracking(); }
         function startTracking() {
-            if (!navigator.geolocation) { showToast('❌ 不支援GPS', 'error'); return; }
-            showToast('🔍 搜尋 GPS 訊號...', 'info');
-            navigator.geolocation.getCurrentPosition(pos => {
-                currentPosition = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-                updateLocationDisplay();
-                uploadTrailPoint();
-            }, err => { showToast('❌ 無法取得位置：' + err.message, 'error'); }, { enableHighAccuracy: true,
-                timeout: 20000 });
-            watchId = navigator.geolocation.watchPosition(pos => {
-                currentPosition = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-                updateLocationDisplay();
-                uploadTrailPoint();
-            }, () => {}, { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 });
+            if(!navigator.geolocation) { showToast('❌ 不支援GPS','error'); return; }
+            navigator.geolocation.getCurrentPosition(pos=>{ currentPosition={lat:pos.coords.latitude,lng:pos.coords.longitude}; updateLocationDisplay(); uploadTrailPoint(); }, err=>showToast('❌ '+err.message,'error'), {enableHighAccuracy:true,timeout:20000});
+            watchId = navigator.geolocation.watchPosition(pos=>{ currentPosition={lat:pos.coords.latitude,lng:pos.coords.longitude}; updateLocationDisplay(); uploadTrailPoint(); }, ()=>{}, {enableHighAccuracy:true,timeout:15000,maximumAge:10000});
             tracking = true;
             document.getElementById('trackingBtn').textContent = '⏸️ 停止監控';
-            document.getElementById('trackingBtn').style.background = '#e05858';
-            setInterval(() => { if (tracking) uploadTrailPoint(); }, RECORD_INTERVAL);
+            setInterval(()=>{ if(tracking) uploadTrailPoint(); }, RECORD_INTERVAL);
         }
-
         function stopTracking() {
-            if (watchId) navigator.geolocation.clearWatch(watchId);
+            if(watchId) navigator.geolocation.clearWatch(watchId);
             tracking = false;
             document.getElementById('trackingBtn').textContent = '▶️ 開始監控';
-            document.getElementById('trackingBtn').style.background = 'var(--accent)';
         }
-
         function updateLocationDisplay() {
-            if (currentPosition) {
-                document.getElementById('currentLocation').textContent =
-                    `Lat: ${currentPosition.lat.toFixed(6)}, Lng: ${currentPosition.lng.toFixed(6)}`;
-            }
+            if(currentPosition) document.getElementById('currentLocation').textContent = `Lat: ${currentPosition.lat.toFixed(6)}, Lng: ${currentPosition.lng.toFixed(6)}`;
         }
-
         async function uploadTrailPoint() {
-            if (!currentUser || !currentPosition) return;
-            try {
-                await supabase.from('location_history').insert({
-                    user_id: currentUser.id,
-                    lat: currentPosition.lat,
-                    lng: currentPosition.lng,
-                    recorded_at: new Date().toISOString()
-                });
-            } catch (e) {
-                console.warn('上傳軌跡失敗（location_history 表可能不存在）:', e);
-            }
+            if(!currentUser||!currentPosition) return;
+            try { await supabase.from('location_history').insert({ user_id:currentUser.id, lat:currentPosition.lat, lng:currentPosition.lng, recorded_at:new Date().toISOString() }); } catch(e) {}
         }
 
-        // ==================== 歷史分析 ====================
+        // 歷史分析
         function initHistoryMap() {
             const mapEl = document.getElementById('historyMap');
-            if (!mapEl || mapEl.offsetHeight === 0) return;
-            if (historyMap) { historyMap.invalidateSize(); return; }
-            historyMap = L.map('historyMap').setView([25.033, 121.565], 13);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(
-                historyMap);
+            if(!mapEl||mapEl.offsetHeight===0) return;
+            if(historyMap) { historyMap.invalidateSize(); return; }
+            historyMap = L.map('historyMap').setView([25.033,121.565],13);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(historyMap);
         }
 
         async function loadHistory() {
-            if (!currentUser) { showToast('⚠️ 請先登入', 'error'); return; }
-            const start = document.getElementById('startDate').value + 'T00:00:00';
-            const end = document.getElementById('endDate').value + 'T23:59:59';
-
-            const { data: points, error } = await supabase
-                .from('location_history')
-                .select('*')
-                .eq('user_id', currentUser.id)
-                .gte('recorded_at', start)
-                .lte('recorded_at', end)
-                .order('recorded_at', { ascending: true });
-
-            if (error) { showToast('❌ 查詢失敗：' + error.message, 'error'); return; }
-            if (!points || points.length === 0) { showToast('⚠️ 此區間無軌跡資料', 'error'); return; }
-
+            if(!currentUser) { showToast('⚠️ 請先登入','error'); return; }
+            const start = document.getElementById('startDate').value+'T00:00:00';
+            const end = document.getElementById('endDate').value+'T23:59:59';
+            const { data:points, error } = await supabase.from('location_history').select('*').eq('user_id',currentUser.id).gte('recorded_at',start).lte('recorded_at',end).order('recorded_at');
+            if(error||!points.length) { showToast('⚠️ 此區間無軌跡資料','error'); return; }
             currentHistoryData = points;
-            initHistoryMap();
-            if (!historyMap) return;
-
-            historyMap.eachLayer(layer => { if (!(layer instanceof L.TileLayer)) historyMap.removeLayer(layer); });
-            const latlngs = points.map(p => [p.lat, p.lng]);
-            L.polyline(latlngs, { color: '#4da6ff', weight: 3 }).addTo(historyMap);
-            if (L.heatLayer) L.heatLayer(latlngs, { radius: 20, blur: 15 }).addTo(historyMap);
-
+            initHistoryMap(); if(!historyMap) return;
+            historyMap.eachLayer(layer=>{ if(!(layer instanceof L.TileLayer)) historyMap.removeLayer(layer); });
+            const latlngs = points.map(p=>[p.lat,p.lng]);
+            L.polyline(latlngs,{color:'#4da6ff',weight:3}).addTo(historyMap);
+            if(L.heatLayer) L.heatLayer(latlngs,{radius:20,blur:15}).addTo(historyMap);
             const stops = detectStops(points);
-            analyzeAndDisplay(stops, points);
+            analyzeAndDisplay(stops,points);
             drawStopsOnMap(stops);
             drawDistanceChart(points);
             historyMap.fitBounds(L.polyline(latlngs).getBounds().pad(0.2));
-            showToast(`✅ 已載入 ${points.length} 個軌跡點`, 'success');
+            showToast(`✅ 已載入 ${points.length} 個軌跡點`,'success');
         }
 
         function detectStops(points) {
-            const stops = [];
-            let start = 0;
-            for (let i = 1; i < points.length; i++) {
-                const d = haversine(points[i - 1].lat, points[i - 1].lng, points[i].lat, points[i].lng);
-                const timeDiff = (new Date(points[i].recorded_at) - new Date(points[i - 1].recorded_at)) / 1000;
-                if (d < 50 && timeDiff < 300 && i - start > 3) {
-                    if (stops.length > 0 && start - stops[stops.length - 1].endIdx < 3) stops[stops.length - 1].endIdx = i;
-                    else stops.push({ startIdx: start, endIdx: i });
-                } else start = i;
+            const stops = []; let start=0;
+            for(let i=1;i<points.length;i++) {
+                const d = haversine(points[i-1].lat,points[i-1].lng,points[i].lat,points[i].lng);
+                const timeDiff = (new Date(points[i].recorded_at)-new Date(points[i-1].recorded_at))/1000;
+                if(d<50 && timeDiff<300 && i-start>3) {
+                    if(stops.length>0 && start-stops[stops.length-1].endIdx<3) stops[stops.length-1].endIdx=i;
+                    else stops.push({startIdx:start,endIdx:i});
+                } else start=i;
             }
-            return stops.map(s => ({
-                start: points[s.startIdx].recorded_at,
-                end: points[s.endIdx].recorded_at,
-                lat: points[s.startIdx].lat,
-                lng: points[s.startIdx].lng,
-                duration: (new Date(points[s.endIdx].recorded_at) - new Date(points[s.startIdx].recorded_at)) / 60000
-            }));
+            return stops.map(s=>({ start:points[s.startIdx].recorded_at, end:points[s.endIdx].recorded_at, lat:points[s.startIdx].lat, lng:points[s.startIdx].lng, duration:(new Date(points[s.endIdx].recorded_at)-new Date(points[s.startIdx].recorded_at))/60000 }));
         }
 
-        function analyzeAndDisplay(stops, points) {
-            let totalDist = 0;
-            for (let i = 1; i < points.length; i++) totalDist += haversine(points[i - 1].lat, points[i - 1].lng, points[i]
-                .lat,
+        function analyzeAndDisplay(stops,points) {
+            let totalDist=0; for(let i=1;i<points.length;i++) totalDist += haversine(points[i-1].lat,points[i-1].lng,points[i].lat,points[i].lng);
+            document.getElementById('totalDistance').textContent = (totalDist/1000).toFixed(2)+' km';
+            const totalStay = stops.reduce((a,b)=>a+b.duration,0);
+            document.getElementById('totalStayTime').textContent = Math.floor(totalStay/60)+'h '+Math.round(totalStay%60)+'m';
+            document.getElementById('totalStops').textContent = stops.length;
+            if(stops.length) {
+                const cluster = stops.reduce((acc,s)=>{ const k=s.lat.toFixed(4)+','+s.lng.toFixed(4); acc[k]=(acc[k]||0)+1; return acc; },{});
+                document.getElementById('topPlace').textContent = Object.keys(cluster).sort((a,b)=>cluster[b]-cluster[a])[0];
+            } else document.getElementById('topPlace').textContent = '無';
+            document.getElementById('stayTable').innerHTML = stops.slice(0,20).map(s=>`<div class="list-item"><span>${new Date(s.start).toLocaleTimeString()} - ${new Date(s.end).toLocaleTimeString()}</span><span>${Math.round(s.duration)}分鐘</span><span style="font-size:0.65rem;color:var(--text2);">(${s.lat.toFixed(5)},${s.lng.toFixed(5)})</span></div>`).join('')||'無停留紀錄';
+        }
+
+        function drawStopsOnMap(stops) {
+            stops.forEach(s=>{ L.circleMarker([s.lat,s.lng],{radius:10,color:'#f59e0b',fillOpacity:0.6}).bindPopup(`停留 ${Math.round(s.duration)} 分鐘`).addTo(historyMap); });
+        }
+
+        function drawDistanceChart(points) {
+            const daily={}; for(let i=1;i<points.length;i++) { const date=points[i].recorded_at.split('T')[0]; daily[date]=(daily[date]||0)+haversine(points[i-1].lat,points[i-1].lng,points[i].lat,points[i].lng); }
+            const labels=Object.keys(daily).sort(), data=labels.map(d=>(daily[d]/1000).toFixed(2));
+            if(distanceChart) distanceChart.destroy();
+            distanceChart = new Chart(document.getElementById('distanceChart'),{type:'bar',data:{labels,datasets:[{label:'每日移動距離 (km)',data,backgroundColor:'#4da6ff'}]},options:{responsive:true,maintainAspectRatio:false}});
+        }
+
+        function exportCSV() {
+            if(!currentHistoryData) { showToast('⚠️ 請先查詢軌跡','error'); return; }
+            const stops = detectStops(currentHistoryData);
+            let csv = '\uFEFF時間,緯度,經度\n';
+            currentHistoryData.forEach(p=>csv+=`${p.recorded_at},${p.lat},${p.lng}\n`);
+            csv += '\n停留明細\n開始時間,結束時間,緯度,經度,停留分鐘\n';
+            stops.forEach(s=>csv+=`${s.start},${s.end},${s.lat.toFixed(6)},${s.lng.toFixed(6)},${Math.round(s.duration)}\n`);
+            const blob = new Blob([csv],{type:'text/csv;charset=utf-8;'});
+            const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='軌跡報表_'+new Date().toISOString().split('T')[0]+'.csv'; a.click();
+        }
+
+        function printReport() { window.print(); }
+
+        function toggleEmailSettings() { document.getElementById('emailSettingsPanel').classList.toggle('hidden'); }
+        function loadEmailSettingsFromStorage() {
+            const s = JSON.parse(localStorage.getItem('emailjs_settings')||'{}');
+            if(s.publicKey) document.getElementById('emailjsPublicKey').value=s.publicKey;
+            if(s.serviceId) document.getElementById('emailjsServiceId').value=s.serviceId;
+            if(s.templateId) document.getElementById('emailjsTemplateId').value=s.templateId;
+            if(s.defaultRecipient) document.getElementById('defaultRecipient').value=s.defaultRecipient;
+            if(s.publicKey && window.emailjs) window.emailjs.init(s.publicKey);
+        }
+        function saveEmailSettings() {
+            const s = { publicKey:document.getElementById('emailjsPublicKey').value.trim(), serviceId:document.getElementById('emailjsServiceId').value.trim(), templateId:document.getElementById('emailjsTemplateId').value.trim(), defaultRecipient:document.getElementById('defaultRecipient').value.trim() };
+            localStorage.setItem('emailjs_settings',JSON.stringify(s));
+            if(s.publicKey) window.emailjs.init(s.publicKey);
+            showToast('💾 已儲存','success');
+        }
+        async function loadQuarterlySettingFromDB() {
+            if(!currentUser) return;
+            const { data } = await supabase.from('profiles').select('quarterly_report_enabled').eq('id',currentUser.id).single();
+            if(data) document.getElementById('quarterlyReportToggle').checked = data.quarterly_report_enabled;
+        }
+        async function toggleQuarterlyReport() {
+            if(!currentUser) return;
+            const enabled = document.getElementById('quarterlyReportToggle').checked;
+            await supabase.from('profiles').update({quarterly_report_enabled:enabled}).eq('id',currentUser.id);
+            showToast(enabled?'📬 已啟用季報':'📬 已取消季報','success');
+        }
+        function testEmailConfig() {
+            const pk=document.getElementById('emailjsPublicKey').value.trim(), sid=document.getElementById('emailjsServiceId').value.trim(), tid=document.getElementById('emailjsTemplateId').value.trim(), rec=document.getElementById('defaultRecipient').value.trim();
+            if(!pk||!sid||!tid||!rec) { showToast('⚠️ 請完整填寫','error'); return; }
+            window.emailjs.init(pk);
+            window.emailjs.send(sid,tid,{to_email:rec,location_name:'測試',distance_m:'50 公尺'}).then(()=>showToast('✅ 測試郵件已發送','success')).catch(e=>showToast('❌ '+e.message,'error'));
+        }
+
+        window.onload = function() {
+            supabase.auth.getUser().then(({data:{user}})=>{
+                if(user) { currentUser=user; showMainApp(); }
+                else { document.getElementById('authPage').classList.remove('hidden'); }
+            }).catch(()=>{ document.getElementById('authPage').classList.remove('hidden'); });
+        };
+    </script>
+</body>
+</html>
