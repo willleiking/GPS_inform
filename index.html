@@ -4,46 +4,25 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover, maximum-scale=1.0">
     <title>📍 社群位置監控 + 歷史軌跡分析</title>
-    <!-- Supabase SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-    <!-- EmailJS SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
-    <!-- Leaflet -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <!-- Leaflet.Heat -->
     <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
-    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
 
     <style>
         :root {
-            --bg: #0a0a10;
-            --surface: #161622;
-            --surface2: #1e1e2e;
-            --border: #2a2a3e;
-            --text: #e8e8f0;
-            --text2: #9898b0;
-            --accent: #5b9cf5;
-            --success: #4ade80;
-            --warning: #facc15;
-            --danger: #f87171;
-            --friend: #c084fc;
-            --event: #f59e0b;
-            --radius: 14px;
-            --radius-sm: 10px;
+            --bg: #0a0a10; --surface: #161622; --surface2: #1e1e2e; --border: #2a2a3e;
+            --text: #e8e8f0; --text2: #9898b0; --accent: #5b9cf5; --success: #4ade80;
+            --warning: #facc15; --danger: #f87171; --friend: #c084fc; --event: #f59e0b;
+            --radius: 14px; --radius-sm: 10px;
         }
         * { margin:0; padding:0; box-sizing:border-box; }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang TC', 'Noto Sans TC', sans-serif;
-            background: var(--bg);
-            color: var(--text);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 10px;
-            padding-bottom: 50px;
+            font-family: -apple-system, BlinkMacSystemFont, 'PingFang TC', 'Noto Sans TC', sans-serif;
+            background: var(--bg); color: var(--text); min-height: 100vh;
+            display: flex; flex-direction: column; align-items: center; padding: 10px; padding-bottom: 50px;
         }
         .app-container { width:100%; max-width:500px; display:flex; flex-direction:column; gap:10px; }
         .tab-nav { display:flex; gap:6px; background:var(--surface); border-radius:var(--radius); padding:4px; border:1px solid var(--border); }
@@ -85,9 +64,6 @@
         input:checked+.slider-toggle { background-color:var(--accent); }
         input:checked+.slider-toggle:before { transform:translateX(16px); }
         @media print { body * { visibility:hidden; } #printArea, #printArea * { visibility:visible; } #printArea { position:absolute; left:0; top:0; width:100%; } .no-print { display:none!important; } }
-        ::-webkit-scrollbar { width:3px; }
-        ::-webkit-scrollbar-track { background:transparent; }
-        ::-webkit-scrollbar-thumb { background:#333; border-radius:3px; }
     </style>
 </head>
 <body>
@@ -98,15 +74,19 @@
         <div class="card" style="text-align:center; padding:30px;">
             <h2 style="background:linear-gradient(135deg,#5b9cf5,#c084fc);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">📍 社群位置監控</h2>
             <p style="color:var(--text2);font-size:0.8rem;">分享位置、綁定好友、到訪通知、歷史軌跡分析</p>
+            <p style="color:var(--success);font-size:0.7rem;" id="connectionStatus">🟢 Supabase 已連線</p>
         </div>
         <div class="card" id="loginCard">
             <div class="card-title">🔐 登入 / 註冊</div>
-            <div class="input-group"><label>Email</label><input type="email" id="authEmail" placeholder="you@example.com" autocomplete="email"></div>
-            <div class="input-group"><label>密碼 (至少6碼)</label><input type="password" id="authPassword" placeholder="••••••" autocomplete="current-password"></div>
+            <div class="input-group"><label>Email</label><input type="email" id="authEmail" placeholder="you@example.com"></div>
+            <div class="input-group"><label>密碼 (至少6碼)</label><input type="password" id="authPassword" placeholder="••••••"></div>
             <div class="input-group hidden" id="nicknameGroup"><label>顯示名稱</label><input type="text" id="authNickname" placeholder="你的暱稱"></div>
             <button class="btn btn-primary" id="authActionBtn" onclick="handleAuthAction()">登入</button>
             <button class="btn btn-sm btn-outline" id="authToggleBtn" onclick="toggleAuthMode()">還沒有帳號？註冊</button>
-            <div style="font-size:0.65rem;color:var(--text2);text-align:center;">💡 註冊後請檢查信箱確認帳號<br>🔗 Supabase 已自動連線</div>
+            <div style="font-size:0.65rem;color:var(--text2);text-align:center;">
+                💡 首次使用請先註冊帳號<br>
+                🔗 Supabase 已自動連線
+            </div>
         </div>
     </div>
 
@@ -116,8 +96,6 @@
             <button class="tab-btn active" onclick="switchTab('monitor')">📍 即時監控</button>
             <button class="tab-btn" onclick="switchTab('history')">📊 歷史分析</button>
         </div>
-
-        <!-- 即時監控 -->
         <div id="monitorTab">
             <div class="card">
                 <div class="card-title">🛰️ 我的位置</div>
@@ -143,8 +121,6 @@
                 <button class="btn btn-sm btn-outline" onclick="showAddEventModal()">＋ 新增活動</button>
             </div>
         </div>
-
-        <!-- 歷史分析 -->
         <div id="historyTab" class="hidden">
             <div id="printArea">
                 <div class="card no-print">
@@ -170,8 +146,6 @@
                 <button class="btn btn-outline" onclick="printReport()">🖨️ 列印報表</button>
             </div>
         </div>
-
-        <!-- 郵件設定 -->
         <div class="card no-print">
             <div class="card-title" onclick="toggleEmailSettings()" style="cursor:pointer;">⚙️ 郵件設定 ▼</div>
             <div id="emailSettingsPanel" class="hidden">
@@ -187,7 +161,7 @@
     </div>
 
     <script>
-        // Supabase 連線 (已內建您的金鑰)
+        // Supabase 連線（已內建您的金鑰）
         const SUPABASE_URL = 'https://hknxdvefnuxgyepuuqra.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhrbnhkdmVmbnV4Z3llcHV1cXJhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1MzM0MDAsImV4cCI6MjA5NzEwOTQwMH0.M97OwM_9CrLCrgxbyA6kQs0MLFiRDzyYlvIiGqhBGec';
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -198,20 +172,16 @@
         let isRegisterMode = false;
         const RECORD_INTERVAL = 30000;
 
+        // ==================== Toast 通知 ====================
         function showToast(msg, type='info') {
-            const t = document.createElement('div'); t.className = `toast ${type}`; t.textContent = msg;
+            const t = document.createElement('div');
+            t.className = `toast ${type}`;
+            t.textContent = msg;
             document.getElementById('toastContainer').appendChild(t);
-            setTimeout(() => { if(t.parentNode) t.remove(); }, 3000);
+            setTimeout(() => { if(t.parentNode) t.remove(); }, 4000);
         }
 
-        function haversine(lat1,lng1,lat2,lng2){
-            const R=6371000, toRad=d=>d*Math.PI/180;
-            const dLat=toRad(lat2-lat1), dLng=toRad(lng2-lng1);
-            const a=Math.sin(dLat/2)**2 + Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLng/2)**2;
-            return R*2*Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-        }
-
-        // 認證
+        // ==================== 認證功能 ====================
         function toggleAuthMode() {
             isRegisterMode = !isRegisterMode;
             document.getElementById('nicknameGroup').classList.toggle('hidden', !isRegisterMode);
@@ -222,35 +192,83 @@
         async function handleAuthAction() {
             const email = document.getElementById('authEmail').value.trim();
             const password = document.getElementById('authPassword').value;
-            if(!email||!password) { showToast('⚠️ 請填寫 Email 和密碼','error'); return; }
-            if(password.length<6) { showToast('⚠️ 密碼至少 6 碼','error'); return; }
+
+            if (!email || !password) {
+                showToast('⚠️ 請填寫 Email 和密碼', 'error');
+                return;
+            }
+            if (password.length < 6) {
+                showToast('⚠️ 密碼至少需要 6 個字元', 'error');
+                return;
+            }
+
+            // 顯示載入中
+            const btn = document.getElementById('authActionBtn');
+            btn.textContent = '處理中...';
+            btn.disabled = true;
+
             try {
-                if(isRegisterMode) {
+                if (isRegisterMode) {
                     const nickname = document.getElementById('authNickname').value.trim();
-                    if(!nickname) { showToast('⚠️ 請填寫顯示名稱','error'); return; }
-                    const { data, error } = await supabase.auth.signUp({ email, password });
-                    if(error) throw error;
-                    if(data.user) {
-                        try { await supabase.from('profiles').insert({ id:data.user.id, email, nickname, is_sharing:false, quarterly_report_enabled:false }); } catch(e) {}
-                        showToast('✅ 註冊成功！請檢查信箱確認帳號','success');
+                    if (!nickname) {
+                        showToast('⚠️ 請填寫顯示名稱', 'error');
+                        btn.textContent = '註冊';
+                        btn.disabled = false;
+                        return;
+                    }
+
+                    console.log('🔐 開始註冊:', email);
+                    const { data, error } = await supabase.auth.signUp({
+                        email,
+                        password,
+                        options: {
+                            data: { nickname }
+                        }
+                    });
+
+                    if (error) throw error;
+
+                    console.log('✅ 註冊回應:', data);
+
+                    if (data.user && data.user.identities && data.user.identities.length > 0) {
+                        showToast('✅ 註冊成功！請檢查信箱確認帳號（或直接登入）', 'success', 6000);
+                        // 切回登入模式
+                        isRegisterMode = true;
+                        toggleAuthMode();
+                    } else if (data.user) {
+                        showToast('⚠️ 此信箱已註冊，請直接登入', 'error', 5000);
+                        isRegisterMode = true;
+                        toggleAuthMode();
                     }
                 } else {
+                    console.log('🔐 開始登入:', email);
                     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-                    if(error) throw error;
+
+                    if (error) throw error;
+
+                    console.log('✅ 登入成功:', data);
                     currentUser = data.user;
                     showMainApp();
-                    showToast('✅ 登入成功','success');
+                    showToast('✅ 登入成功！歡迎回來', 'success');
                 }
-            } catch(e) { showToast('❌ '+e.message,'error',5000); }
+            } catch (e) {
+                console.error('❌ 認證錯誤:', e);
+                showToast('❌ ' + (e.message || '認證失敗，請稍後再試'), 'error', 6000);
+            } finally {
+                btn.textContent = isRegisterMode ? '註冊' : '登入';
+                btn.disabled = false;
+            }
         }
 
         async function handleLogout() {
-            if(tracking) stopTracking();
+            if (tracking) stopTracking();
             await supabase.auth.signOut();
             currentUser = null;
             document.getElementById('mainApp').classList.add('hidden');
             document.getElementById('authPage').classList.remove('hidden');
-            showToast('👋 已登出','info');
+            document.getElementById('authEmail').value = '';
+            document.getElementById('authPassword').value = '';
+            showToast('👋 已登出', 'info');
         }
 
         async function showMainApp() {
@@ -261,201 +279,33 @@
             loadQuarterlySettingFromDB();
         }
 
+        // ==================== 資料載入 ====================
         async function loadAllData() {
-            if(!currentUser) return;
+            if (!currentUser) return;
             try {
                 const [fRes, tRes, eRes] = await Promise.all([
                     supabase.from('friendships').select('*').eq('user_id', currentUser.id),
                     supabase.from('static_targets').select('*').eq('user_id', currentUser.id),
                     supabase.from('events').select('*').eq('user_id', currentUser.id).eq('is_expired', false)
                 ]);
-                renderFriends(fRes.data||[]);
-                renderStaticTargets(tRes.data||[]);
-                renderEvents(eRes.data||[]);
-            } catch(e) { console.warn('資料表可能不存在', e); }
+                renderFriends(fRes.data || []);
+                renderStaticTargets(tRes.data || []);
+                renderEvents(eRes.data || []);
+            } catch (e) {
+                console.warn('⚠️ 資料表可能不存在:', e.message);
+                document.getElementById('friendList').innerHTML = '<div style="text-align:center;color:var(--warning);padding:20px;">⚠️ 請先在 Supabase 建立資料表</div>';
+                document.getElementById('staticTargetList').innerHTML = '<div style="text-align:center;color:var(--warning);padding:20px;">⚠️ 請先在 Supabase 建立資料表</div>';
+                document.getElementById('eventList').innerHTML = '<div style="text-align:center;color:var(--warning);padding:20px;">⚠️ 請先在 Supabase 建立資料表</div>';
+            }
         }
 
         function renderFriends(data) {
             const el = document.getElementById('friendList');
-            if(!data.length) { el.innerHTML = '<div style="text-align:center;color:var(--text2);padding:20px;">👥 尚未綁定好友</div>'; return; }
+            if (!data.length) { el.innerHTML = '<div style="text-align:center;color:var(--text2);padding:20px;">👥 尚未綁定好友</div>'; return; }
             el.innerHTML = data.map(f => `<div class="list-item" style="justify-content:space-between;"><span>🧑 ${f.friend_nickname||'好友'}</span><span style="color:var(--text2);">半徑 ${f.alert_radius||2000}m</span><button class="btn btn-sm btn-danger" onclick="removeFriendship('${f.id}')">✕</button></div>`).join('');
         }
+
         function renderStaticTargets(data) {
             const el = document.getElementById('staticTargetList');
-            if(!data.length) { el.innerHTML = '<div style="text-align:center;color:var(--text2);padding:20px;">📋 尚無定點目標</div>'; return; }
-            el.innerHTML = data.map(t => `<div class="list-item" style="justify-content:space-between;"><span>📍 ${t.name}</span><span style="color:var(--text2);">半徑 ${t.alert_radius||500}m</span><button class="btn btn-sm btn-danger" onclick="removeStaticTarget('${t.id}')">✕</button></div>`).join('');
-        }
-        function renderEvents(data) {
-            const el = document.getElementById('eventList');
-            if(!data.length) { el.innerHTML = '<div style="text-align:center;color:var(--text2);padding:20px;">📅 尚無活動</div>'; return; }
-            el.innerHTML = data.map(e => `<div class="list-item" style="justify-content:space-between;"><span>📅 ${e.name}</span><span style="color:var(--text2);">${e.end_date||''}</span><button class="btn btn-sm btn-danger" onclick="removeEvent('${e.id}')">✕</button></div>`).join('');
-        }
-
-        // 簡化：好友/目標/活動的新增與刪除
-        async function showAddFriendModal() { showToast('🔧 功能開發中，請使用完整版','info'); }
-        async function showAddStaticTargetModal() { showToast('🔧 功能開發中','info'); }
-        async function showAddEventModal() { showToast('🔧 功能開發中','info'); }
-        async function removeFriendship(id) { await supabase.from('friendships').delete().eq('id',id); loadAllData(); }
-        async function removeStaticTarget(id) { await supabase.from('static_targets').delete().eq('id',id); loadAllData(); }
-        async function removeEvent(id) { await supabase.from('events').update({is_expired:true}).eq('id',id); loadAllData(); }
-
-        function switchTab(tab) {
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            if(tab==='monitor') {
-                document.querySelector('.tab-btn:nth-child(1)').classList.add('active');
-                document.getElementById('monitorTab').classList.remove('hidden');
-                document.getElementById('historyTab').classList.add('hidden');
-            } else {
-                document.querySelector('.tab-btn:nth-child(2)').classList.add('active');
-                document.getElementById('monitorTab').classList.add('hidden');
-                document.getElementById('historyTab').classList.remove('hidden');
-                const now = new Date();
-                document.getElementById('endDate').value = now.toISOString().split('T')[0];
-                document.getElementById('startDate').value = new Date(now-7*86400000).toISOString().split('T')[0];
-                setTimeout(initHistoryMap, 300);
-            }
-        }
-
-        function toggleTracking() { tracking ? stopTracking() : startTracking(); }
-        function startTracking() {
-            if(!navigator.geolocation) { showToast('❌ 不支援GPS','error'); return; }
-            navigator.geolocation.getCurrentPosition(pos=>{ currentPosition={lat:pos.coords.latitude,lng:pos.coords.longitude}; updateLocationDisplay(); uploadTrailPoint(); }, err=>showToast('❌ '+err.message,'error'), {enableHighAccuracy:true,timeout:20000});
-            watchId = navigator.geolocation.watchPosition(pos=>{ currentPosition={lat:pos.coords.latitude,lng:pos.coords.longitude}; updateLocationDisplay(); uploadTrailPoint(); }, ()=>{}, {enableHighAccuracy:true,timeout:15000,maximumAge:10000});
-            tracking = true;
-            document.getElementById('trackingBtn').textContent = '⏸️ 停止監控';
-            setInterval(()=>{ if(tracking) uploadTrailPoint(); }, RECORD_INTERVAL);
-        }
-        function stopTracking() {
-            if(watchId) navigator.geolocation.clearWatch(watchId);
-            tracking = false;
-            document.getElementById('trackingBtn').textContent = '▶️ 開始監控';
-        }
-        function updateLocationDisplay() {
-            if(currentPosition) document.getElementById('currentLocation').textContent = `Lat: ${currentPosition.lat.toFixed(6)}, Lng: ${currentPosition.lng.toFixed(6)}`;
-        }
-        async function uploadTrailPoint() {
-            if(!currentUser||!currentPosition) return;
-            try { await supabase.from('location_history').insert({ user_id:currentUser.id, lat:currentPosition.lat, lng:currentPosition.lng, recorded_at:new Date().toISOString() }); } catch(e) {}
-        }
-
-        // 歷史分析
-        function initHistoryMap() {
-            const mapEl = document.getElementById('historyMap');
-            if(!mapEl||mapEl.offsetHeight===0) return;
-            if(historyMap) { historyMap.invalidateSize(); return; }
-            historyMap = L.map('historyMap').setView([25.033,121.565],13);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(historyMap);
-        }
-
-        async function loadHistory() {
-            if(!currentUser) { showToast('⚠️ 請先登入','error'); return; }
-            const start = document.getElementById('startDate').value+'T00:00:00';
-            const end = document.getElementById('endDate').value+'T23:59:59';
-            const { data:points, error } = await supabase.from('location_history').select('*').eq('user_id',currentUser.id).gte('recorded_at',start).lte('recorded_at',end).order('recorded_at');
-            if(error||!points.length) { showToast('⚠️ 此區間無軌跡資料','error'); return; }
-            currentHistoryData = points;
-            initHistoryMap(); if(!historyMap) return;
-            historyMap.eachLayer(layer=>{ if(!(layer instanceof L.TileLayer)) historyMap.removeLayer(layer); });
-            const latlngs = points.map(p=>[p.lat,p.lng]);
-            L.polyline(latlngs,{color:'#4da6ff',weight:3}).addTo(historyMap);
-            if(L.heatLayer) L.heatLayer(latlngs,{radius:20,blur:15}).addTo(historyMap);
-            const stops = detectStops(points);
-            analyzeAndDisplay(stops,points);
-            drawStopsOnMap(stops);
-            drawDistanceChart(points);
-            historyMap.fitBounds(L.polyline(latlngs).getBounds().pad(0.2));
-            showToast(`✅ 已載入 ${points.length} 個軌跡點`,'success');
-        }
-
-        function detectStops(points) {
-            const stops = []; let start=0;
-            for(let i=1;i<points.length;i++) {
-                const d = haversine(points[i-1].lat,points[i-1].lng,points[i].lat,points[i].lng);
-                const timeDiff = (new Date(points[i].recorded_at)-new Date(points[i-1].recorded_at))/1000;
-                if(d<50 && timeDiff<300 && i-start>3) {
-                    if(stops.length>0 && start-stops[stops.length-1].endIdx<3) stops[stops.length-1].endIdx=i;
-                    else stops.push({startIdx:start,endIdx:i});
-                } else start=i;
-            }
-            return stops.map(s=>({ start:points[s.startIdx].recorded_at, end:points[s.endIdx].recorded_at, lat:points[s.startIdx].lat, lng:points[s.startIdx].lng, duration:(new Date(points[s.endIdx].recorded_at)-new Date(points[s.startIdx].recorded_at))/60000 }));
-        }
-
-        function analyzeAndDisplay(stops,points) {
-            let totalDist=0; for(let i=1;i<points.length;i++) totalDist += haversine(points[i-1].lat,points[i-1].lng,points[i].lat,points[i].lng);
-            document.getElementById('totalDistance').textContent = (totalDist/1000).toFixed(2)+' km';
-            const totalStay = stops.reduce((a,b)=>a+b.duration,0);
-            document.getElementById('totalStayTime').textContent = Math.floor(totalStay/60)+'h '+Math.round(totalStay%60)+'m';
-            document.getElementById('totalStops').textContent = stops.length;
-            if(stops.length) {
-                const cluster = stops.reduce((acc,s)=>{ const k=s.lat.toFixed(4)+','+s.lng.toFixed(4); acc[k]=(acc[k]||0)+1; return acc; },{});
-                document.getElementById('topPlace').textContent = Object.keys(cluster).sort((a,b)=>cluster[b]-cluster[a])[0];
-            } else document.getElementById('topPlace').textContent = '無';
-            document.getElementById('stayTable').innerHTML = stops.slice(0,20).map(s=>`<div class="list-item"><span>${new Date(s.start).toLocaleTimeString()} - ${new Date(s.end).toLocaleTimeString()}</span><span>${Math.round(s.duration)}分鐘</span><span style="font-size:0.65rem;color:var(--text2);">(${s.lat.toFixed(5)},${s.lng.toFixed(5)})</span></div>`).join('')||'無停留紀錄';
-        }
-
-        function drawStopsOnMap(stops) {
-            stops.forEach(s=>{ L.circleMarker([s.lat,s.lng],{radius:10,color:'#f59e0b',fillOpacity:0.6}).bindPopup(`停留 ${Math.round(s.duration)} 分鐘`).addTo(historyMap); });
-        }
-
-        function drawDistanceChart(points) {
-            const daily={}; for(let i=1;i<points.length;i++) { const date=points[i].recorded_at.split('T')[0]; daily[date]=(daily[date]||0)+haversine(points[i-1].lat,points[i-1].lng,points[i].lat,points[i].lng); }
-            const labels=Object.keys(daily).sort(), data=labels.map(d=>(daily[d]/1000).toFixed(2));
-            if(distanceChart) distanceChart.destroy();
-            distanceChart = new Chart(document.getElementById('distanceChart'),{type:'bar',data:{labels,datasets:[{label:'每日移動距離 (km)',data,backgroundColor:'#4da6ff'}]},options:{responsive:true,maintainAspectRatio:false}});
-        }
-
-        function exportCSV() {
-            if(!currentHistoryData) { showToast('⚠️ 請先查詢軌跡','error'); return; }
-            const stops = detectStops(currentHistoryData);
-            let csv = '\uFEFF時間,緯度,經度\n';
-            currentHistoryData.forEach(p=>csv+=`${p.recorded_at},${p.lat},${p.lng}\n`);
-            csv += '\n停留明細\n開始時間,結束時間,緯度,經度,停留分鐘\n';
-            stops.forEach(s=>csv+=`${s.start},${s.end},${s.lat.toFixed(6)},${s.lng.toFixed(6)},${Math.round(s.duration)}\n`);
-            const blob = new Blob([csv],{type:'text/csv;charset=utf-8;'});
-            const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='軌跡報表_'+new Date().toISOString().split('T')[0]+'.csv'; a.click();
-        }
-
-        function printReport() { window.print(); }
-
-        function toggleEmailSettings() { document.getElementById('emailSettingsPanel').classList.toggle('hidden'); }
-        function loadEmailSettingsFromStorage() {
-            const s = JSON.parse(localStorage.getItem('emailjs_settings')||'{}');
-            if(s.publicKey) document.getElementById('emailjsPublicKey').value=s.publicKey;
-            if(s.serviceId) document.getElementById('emailjsServiceId').value=s.serviceId;
-            if(s.templateId) document.getElementById('emailjsTemplateId').value=s.templateId;
-            if(s.defaultRecipient) document.getElementById('defaultRecipient').value=s.defaultRecipient;
-            if(s.publicKey && window.emailjs) window.emailjs.init(s.publicKey);
-        }
-        function saveEmailSettings() {
-            const s = { publicKey:document.getElementById('emailjsPublicKey').value.trim(), serviceId:document.getElementById('emailjsServiceId').value.trim(), templateId:document.getElementById('emailjsTemplateId').value.trim(), defaultRecipient:document.getElementById('defaultRecipient').value.trim() };
-            localStorage.setItem('emailjs_settings',JSON.stringify(s));
-            if(s.publicKey) window.emailjs.init(s.publicKey);
-            showToast('💾 已儲存','success');
-        }
-        async function loadQuarterlySettingFromDB() {
-            if(!currentUser) return;
-            const { data } = await supabase.from('profiles').select('quarterly_report_enabled').eq('id',currentUser.id).single();
-            if(data) document.getElementById('quarterlyReportToggle').checked = data.quarterly_report_enabled;
-        }
-        async function toggleQuarterlyReport() {
-            if(!currentUser) return;
-            const enabled = document.getElementById('quarterlyReportToggle').checked;
-            await supabase.from('profiles').update({quarterly_report_enabled:enabled}).eq('id',currentUser.id);
-            showToast(enabled?'📬 已啟用季報':'📬 已取消季報','success');
-        }
-        function testEmailConfig() {
-            const pk=document.getElementById('emailjsPublicKey').value.trim(), sid=document.getElementById('emailjsServiceId').value.trim(), tid=document.getElementById('emailjsTemplateId').value.trim(), rec=document.getElementById('defaultRecipient').value.trim();
-            if(!pk||!sid||!tid||!rec) { showToast('⚠️ 請完整填寫','error'); return; }
-            window.emailjs.init(pk);
-            window.emailjs.send(sid,tid,{to_email:rec,location_name:'測試',distance_m:'50 公尺'}).then(()=>showToast('✅ 測試郵件已發送','success')).catch(e=>showToast('❌ '+e.message,'error'));
-        }
-
-        window.onload = function() {
-            supabase.auth.getUser().then(({data:{user}})=>{
-                if(user) { currentUser=user; showMainApp(); }
-                else { document.getElementById('authPage').classList.remove('hidden'); }
-            }).catch(()=>{ document.getElementById('authPage').classList.remove('hidden'); });
-        };
-    </script>
-</body>
-</html>
+            if (!data.length) { el.innerHTML = '<div style="text-align:center;color:var(--text2);padding:20px;">📋 尚無定點目標</div>'; return; }
+            el.innerHTML = data.map(t => `<div class="list-item" style="justify-content:space-between;"><span>📍 ${t.name}</span><span style="color:var(--text2);">半徑 ${t.alert_radius||500}m</span><button class="btn btn-sm btn-danger" onclick="removeStaticTarget('${t.id}')">✕</button></di
