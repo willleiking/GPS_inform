@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover, maximum-scale=1.0">
-    <title>📍 社群位置監控 + 歷史軌跡 analysis</title>
+    <title>📍 社群位置監控 + 歷史軌跡分析</title>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
@@ -369,12 +369,12 @@
     </div>
 
     <script>
-        // ==================== Supabase 連線 ====================
+        // ==================== Supabase 連線（已換名避免衝突）====================
         const SUPABASE_URL = 'https://hknxdvefnuxgyepuuqra.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhrbnhkdmVmbnV4Z3llcHV1cXJhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1MzM0MDAsImV4cCI6MjA5NzEwOTQwMH0.M97OwM_9CrLCrgxbyA6kQs0MLFiRDzyYlvIiGqhBGec';
-		const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY); 
-
-		// (後面程式碼中的 supabase.auth... 等等都要跟著改成 supabaseClient.auth...)
+        
+        // 使用新變數名稱 supabaseClient 避開全域套件衝突
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         // ==================== 全域變數 ====================
         let currentUser = null;
@@ -396,7 +396,7 @@
             setTimeout(() => { if (t.parentNode) t.remove(); }, 3500);
         }
 
-        // ==================== 認證 ====================
+        // ==================== 帳號認證 ====================
         function toggleAuthMode() {
             isRegisterMode = !isRegisterMode;
             document.getElementById('nicknameGroup').classList.toggle('hidden', !isRegisterMode);
@@ -425,7 +425,7 @@
                         return; 
                     }
 
-                    const { data, error } = await supabase.auth.signUp({
+                    const { data, error } = await supabaseClient.auth.signUp({
                         email,
                         password,
                         options: { data: { nickname } }
@@ -439,7 +439,7 @@
                         toggleAuthMode();
                     }
                 } else {
-                    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+                    const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
                     if (error) throw error;
 
                     currentUser = data.user;
@@ -457,7 +457,7 @@
 
         async function handleLogout() {
             if (tracking) stopTracking();
-            await supabase.auth.signOut();
+            await supabaseClient.auth.signOut();
             currentUser = null;
             document.getElementById('mainApp').classList.add('hidden');
             document.getElementById('authPage').classList.remove('hidden');
@@ -478,9 +478,9 @@
             if (!currentUser) return;
             try {
                 const [fRes, tRes, eRes] = await Promise.all([
-                    supabase.from('friendships').select('*').eq('user_id', currentUser.id),
-                    supabase.from('static_targets').select('*').eq('user_id', currentUser.id),
-                    supabase.from('events').select('*').eq('user_id', currentUser.id).eq('is_expired', false)
+                    supabaseClient.from('friendships').select('*').eq('user_id', currentUser.id),
+                    supabaseClient.from('static_targets').select('*').eq('user_id', currentUser.id),
+                    supabaseClient.from('events').select('*').eq('user_id', currentUser.id).eq('is_expired', false)
                 ]);
                 renderList('friendList', fRes.data || [], '👥 尚未綁定好友', '🧑', '好友', 'alert_radius', 'm');
                 renderList('staticTargetList', tRes.data || [], '📋 尚無定點目標', '📍', '地點', 'alert_radius', 'm');
@@ -519,15 +519,15 @@
             else if (listId === 'eventList') table = 'events';
 
             if (table === 'events') {
-                await supabase.from(table).update({ is_expired: true }).eq('id', id);
+                await supabaseClient.from(table).update({ is_expired: true }).eq('id', id);
             } else {
-                await supabase.from(table).delete().eq('id', id);
+                await supabaseClient.from(table).delete().eq('id', id);
             }
             loadAllData();
             showToast('已刪除', 'info');
         }
 
-        // ==================== 新增模態框 ====================
+        // ==================== 新增功能 ====================
         function showAddFriendModal() {
             const email = prompt('請輸入好友的 Email：');
             if (!email) return;
@@ -558,6 +558,7 @@
             }, '定點目標');
         }
 
+        // ==================== 新增活動 ====================
         function showAddEventModal() {
             const name = prompt('活動名稱：');
             if (!name) return;
@@ -579,7 +580,7 @@
         }
 
         async function addItem(table, data, label) {
-            const { error } = await supabase.from(table).insert(data);
+            const { error } = await supabaseClient.from(table).insert(data);
             if (error) { showToast('❌ 新增失敗：' + error.message, 'error'); return; }
             showToast(`✅ 已新增${label}`, 'success');
             loadAllData();
@@ -653,7 +654,7 @@
         async function uploadTrailPoint() {
             if (!currentUser || !currentPosition) return;
             try {
-                await supabase.from('location_history').insert({
+                await supabaseClient.from('location_history').insert({
                     user_id: currentUser.id,
                     lat: currentPosition.lat,
                     lng: currentPosition.lng,
@@ -664,7 +665,7 @@
             }
         }
 
-        // ==================== 歷史分析 ====================
+        // ==================== 歷史分析邏輯 ====================
         function haversine(lat1, lng1, lat2, lng2) {
             const R = 6371000;
             const toRad = d => d * Math.PI / 180;
@@ -687,7 +688,7 @@
             const start = document.getElementById('startDate').value + 'T00:00:00';
             const end = document.getElementById('endDate').value + 'T23:59:59';
 
-            const { data, error } = await supabase
+            const { data, error } = await supabaseClient
                 .from('location_history')
                 .select('*')
                 .eq('user_id', currentUser.id)
@@ -845,11 +846,11 @@
                 .catch(e => showToast('❌ 發送失敗：' + e.message, 'error'));
         }
 
-        // ==================== 初始化 ====================
+        // ==================== 系統初始化 ====================
         window.onload = async function() {
             console.log('🚀 應用程式啟動');
             try {
-                const sessionRes = await supabase.auth.getSession();
+                const sessionRes = await supabaseClient.auth.getSession();
                 if (sessionRes.error) throw sessionRes.error;
 
                 document.getElementById('connectionStatus').textContent = '🟢 Supabase 已連線';
