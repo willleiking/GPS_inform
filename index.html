@@ -372,7 +372,9 @@
         // ==================== Supabase 連線 ====================
         const SUPABASE_URL = 'https://hknxdvefnuxgyepuuqra.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhrbnhkdmVmbnV4Z3llcHV1cXJhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1MzM0MDAsImV4cCI6MjA5NzEwOTQwMH0.M97OwM_9CrLCrgxbyA6kQs0MLFiRDzyYlvIiGqhBGec';
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+		const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY); 
+
+		// (後面程式碼中的 supabase.auth... 等等都要跟著改成 supabaseClient.auth...)
 
         // ==================== 全域變數 ====================
         let currentUser = null;
