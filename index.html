@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover, maximum-scale=1.0">
-    <title>📍 七龍珠雷達定位系統 - 台灣精準版</title>
+    <title>📍 七龍珠雷達定位系統 - 魚雷掃描特效版</title>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
@@ -155,7 +155,7 @@
             border: 1px solid var(--border);
         }
         
-        /* 🐉 七龍珠雷達風特殊地圖樣式 */
+        /* 🐉 七龍珠 + 魚雷潛艇風圓形雷達面板 */
         .radar-map-wrapper {
             position: relative;
             border: 4px solid #333;
@@ -170,6 +170,8 @@
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
         }
+        
+        /* 雷達網格十字線 UI */
         .radar-crosshair {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -177,10 +179,26 @@
             z-index: 1000;
         }
         .radar-crosshair::before {
-            content: ''; position: absolute; top: 0; left: 50%; width: 2px; height: 100%; background: rgba(74, 222, 128, 0.25);
+            content: ''; position: absolute; top: 0; left: 50%; width: 2px; height: 100%; background: rgba(74, 222, 128, 0.2);
         }
         .radar-crosshair::after {
-            content: ''; position: absolute; top: 50%; left: 0; height: 2px; width: 100%; background: rgba(74, 222, 128, 0.25);
+            content: ''; position: absolute; top: 50%; left: 0; height: 2px; width: 100%; background: rgba(74, 222, 128, 0.2);
+        }
+
+        /* 📡 ✨ 綠色順時針魚雷掃描線特效層 */
+        .radar-sweeper {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 999;
+            pointer-events: none; /* 讓使用者能穿透點擊地圖 */
+            border-radius: 50%;
+            /* 使用圓錐漸層製造出一條亮綠色前鋒線，後面帶有扇形淡出尾巴的效果 */
+            background: conic-gradient(from 0deg, rgba(74, 222, 128, 0.4) 0deg, rgba(74, 222, 128, 0) 60deg, transparent 360deg);
+            animation: radar-sweep 4s infinite linear;
+        }
+        @keyframes radar-sweep {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
         }
 
         /* 自訂小藍點脈衝動畫 */
@@ -289,7 +307,7 @@
             </div>
             <div class="input-group">
                 <label>密碼（至少 6 碼）</label>
-                <input type="password" id="authPassword" placeholder="••••••">
+                <input type="password" id="authPassword" placeholder="•••••">
             </div>
             <div class="input-group hidden" id="nicknameGroup">
                 <label>顯示名稱</label>
@@ -312,6 +330,7 @@
                 <div class="radar-map-wrapper">
                     <div id="radarMap"></div>
                     <div class="radar-crosshair"></div>
+                    <div class="radar-sweeper"></div>
                 </div>
                 <div id="currentLocation" style="font-family:monospace; font-size:0.75rem; color:var(--text2); margin-top:5px;">--</div>
             </div>
@@ -320,7 +339,7 @@
                 <div class="card-title">🛰️ 雷達控制台</div>
                 <div style="display:flex; gap:8px;">
                     <button class="btn btn-primary" id="trackingBtn" onclick="toggleTracking()" style="flex:1;">▶️ 啟動雷達掃描</button>
-                    <button class="btn btn-sm btn-danger" onclick="handleLogout()">登登出</button>
+                    <button class="btn btn-sm btn-danger" onclick="handleLogout()">登出</button>
                 </div>
             </div>
 
@@ -423,7 +442,7 @@
             setTimeout(() => { if (t.parentNode) t.remove(); }, 3500);
         }
 
-        // 🇹🇼 台灣限定防呆搜尋函數（精準過濾非台灣地區的地點）
+        // 🇹🇼 台灣限定防呆搜尋函數
         async function searchCoordinates(query) {
             if (!query) return null;
             try {
@@ -440,7 +459,7 @@
                         displayName: data[0].display_name 
                     };
                 } else {
-                    showToast('🔍 台灣境內找不到該地點，請確認名稱或加上縣市（如：台北市輕易豐盛）', 'warning');
+                    showToast('🔍 台灣境內找不到該地點，請確認名稱並加上縣市', 'warning');
                     return null;
                 }
             } catch (e) {
@@ -475,12 +494,11 @@
             }).addTo(radarMap);
         }
 
-        // 帳號認證
         function toggleAuthMode() {
             isRegisterMode = !isRegisterMode;
             document.getElementById('nicknameGroup').classList.toggle('hidden', !isRegisterMode);
             document.getElementById('authActionBtn').textContent = isRegisterMode ? '註冊' : '登入';
-            document.getElementById('authToggleBtn').textContent = isRegisterMode ? '還沒有帳號？登入' : '還沒有帳號？註冊';
+            document.getElementById('authToggleBtn').textContent = isRegisterMode ? '已經有帳號？登入' : '還沒有帳號？註冊';
         }
 
         async function handleAuthAction() {
@@ -616,7 +634,6 @@
             }
         }
 
-        // 🟢 定點目標：加入使用者「核對地址」防呆確認機制
         async function showAddStaticTargetModal() {
             const query = prompt('請輸入地址或店家名稱：\n(例如：台北車站、輕易豐盛學院)');
             if (!query) return;
@@ -625,11 +642,10 @@
             const geoData = await searchCoordinates(query);
             
             if (geoData) {
-                // 💡 跳出確認對話框，強迫使用者肉眼核對地址！
                 const checkAddress = confirm(`❓ 請核對系統為您找到的台灣地址：\n\n系統解析結果：\n${geoData.displayName}\n\n這是否為您想設定的正確位置？`);
                 
                 if (!checkAddress) {
-                    showToast('⏸️ 已取消儲存，請輸入更詳細的地址再次搜尋。', 'info');
+                    showToast('⏸️ 已取消儲存。', 'info');
                     return;
                 }
 
@@ -646,7 +662,6 @@
             }
         }
 
-        // 🟢 期間限定活動：同樣加入「核對地址」防呆確認機制
         async function showAddEventModal() {
             const query = prompt('請輸入活動舉辦的地址或店名：');
             if (!query) return;
@@ -655,7 +670,6 @@
             const geoData = await searchCoordinates(query);
             
             if (geoData) {
-                // 💡 跳出確認對話框，強迫使用者肉眼核對地址！
                 const checkAddress = confirm(`❓ 請核對系統為您找到的台灣活動地點：\n\n系統解析結果：\n${geoData.displayName}\n\n這是否為您想設定的正確位置？`);
                 
                 if (!checkAddress) {
