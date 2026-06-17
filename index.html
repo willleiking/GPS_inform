@@ -6,7 +6,6 @@
     <title>📍 TribeRadar - 同好生活網格系統</title>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
@@ -22,7 +21,6 @@
             --text-bright: #66fcf1;
             --accent: #66fcf1; 
             
-            /* 族群色彩定義 */
             --tribe-food: #ff7675;   
             --tribe-shop: #fdcb6e;   
             --tribe-study: #a29bfe;  
@@ -74,7 +72,7 @@
         }
         .tab-btn.active { background: var(--accent); color: #0b0c10; }
         
-        /* 🗺️ 雷達圓形外殼視覺 */
+        /* 🗺️ 雷達視覺 */
         .radar-map-wrapper {
             position: relative; border: 3px solid var(--border); border-radius: 50%; width: 100%; padding-bottom: 100%;
             overflow: hidden; box-shadow: inset 0 0 20px rgba(0,0,0,0.9), 0 0 15px rgba(102,252,241,0.2); background: #070b11;
@@ -90,7 +88,6 @@
         }
         @keyframes radar-sweep { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
-        /* 📍 中心與同好標記點 */
         .radar-pulse-icon { background: #fff; border: 2px solid var(--accent); border-radius: 50%; box-shadow: 0 0 10px var(--accent); }
         .radar-pulse-icon::after { content: ''; display: block; width: 100%; height: 100%; border-radius: 50%; background: rgba(102,252,241,0.4); animation: pulse 1.8s infinite ease-out; }
         @keyframes pulse { 0% { transform: scale(1); opacity: 1; } 100% { transform: scale(3); opacity: 0; } }
@@ -118,17 +115,32 @@
         
         .hidden { display: none !important; }
         .map-container { height: 280px; border-radius: var(--radius-sm); overflow: hidden; border: 1px solid var(--border); }
+        .time-picker-row { display: flex; gap: 8px; width: 100%; }
+        .time-picker-row .input-group { flex: 1; }
+
+        /* 🎨 UI設計師新增：科技感雷達攔截彈出跳窗樣式 */
+        .modal-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:10000; display:flex; align-items:center; justify-content:center; padding:20px; }
+        .modal-content { background:var(--surface); border:2px solid var(--accent); border-radius:var(--radius); padding:20px; width:100%; max-width:400px; text-align:center; box-shadow:0 0 25px rgba(102,252,241,0.4); animation: toastIn 0.3s; }
+        .modal-body { font-size:1rem; margin:15px 0; line-height:1.5; color:#fff; }
     </style>
 </head>
 <body>
 
     <div class="toast-container" id="toastContainer"></div>
 
+    <div class="modal-overlay hidden" id="notificationModal">
+        <div class="modal-content">
+            <h3 style="color:var(--warning); letter-spacing:1px;">📡 網格雷達攔截通知</h3>
+            <div class="modal-body" id="modalMessage">偵測到同好靠近中！</div>
+            <button class="btn btn-primary" onclick="closeNotificationModal()">確認並解除雷達訊號</button>
+        </div>
+    </div>
+
     <div class="app-container" id="authPage">
         <div class="card" style="text-align:center; padding:30px 20px;">
             <h2 style="color:var(--text-bright); letter-spacing: 1px;">📍 TribeRadar</h2>
-            <p style="color:var(--text); font-size:0.85rem; margin-top:5px;">生活圈網格連結 · 發現你的同好聚落</p>
-            <p style="font-size:0.75rem; color: var(--warning); margin-top:15px;" id="connectionStatus">🔄 網格主機同步中...</p>
+            <p style="color:var(--text); font-size:0.85rem; margin-top:5px;">生活圈網格連結系統 · 發現同好聚落</p>
+            <p style="font-size:0.75rem; color: var(--warning); margin-top:15px;" id="connectionStatus">🔄 網格主機連線中...</p>
         </div>
         <div class="card">
             <div class="card-title" id="authTitle">🔑 同好圈通訊登入</div>
@@ -157,7 +169,7 @@
 
         <div id="monitorTab">
             <div class="card" style="align-items: center; background: #070d14;">
-                <div class="card-title" style="align-self: flex-start;">🔮 即時周邊生活聚落探測</div>
+                <div class="card-title" style="align-self: flex-start;">🔮 周邊生活聚落即時探測</div>
                 <div class="radar-map-wrapper">
                     <div id="radarMap"></div>
                     <div class="radar-crosshair"></div>
@@ -174,7 +186,7 @@
             </div>
 
             <div class="card" style="border: 1px solid var(--text-bright); background: rgba(102,252,241,0.02);">
-                <div class="card-title">📡 發射即時揪團波 (周邊 XXX 公尺可見)</div>
+                <div class="card-title">📡 發射即時揪團波 (周邊範圍內同好可見)</div>
                 <div style="display: flex; gap:8px;">
                     <select id="waveTribe" style="background:var(--surface2); color:#fff; border:1px solid var(--border); border-radius:8px; padding:6px; font-size:0.8rem;">
                         <option value="study">📚 自習</option>
@@ -182,28 +194,43 @@
                         <option value="food">🍕 美食</option>
                         <option value="gym">💪 健身</option>
                     </select>
-                    <input type="text" id="waveDesc" placeholder="輸入備註，如: 某某路星巴克..." style="flex:1; background:var(--surface2); color:#fff; border:1px solid var(--border); border-radius:8px; padding:6px; font-size:0.8rem;">
+                    <input type="text" id="waveDesc" placeholder="輸入內容，如: 拼多益、某防波堤釣透抽..." style="flex:1; background:var(--surface2); color:#fff; border:1px solid var(--border); border-radius:8px; padding:6px; font-size:0.8rem;">
                     <button class="btn btn-sm btn-primary" onclick="launchWaveSignal()">發射</button>
                 </div>
                 <div id="activeWavesList" style="max-height:100px; overflow-y:auto; font-size:0.75rem; margin-top:4px;"></div>
             </div>
 
             <div class="card">
-                <div class="card-title">👥 我的同好名冊（支援自訂群組）</div>
+                <div class="card-title">👥 我的同好名冊 (可自訂警示通知公尺數)</div>
                 <div id="friendList" style="max-height:140px; overflow-y:auto;"></div>
                 <button class="btn btn-sm btn-outline" onclick="showAddFriendModal()">＋ 邀請同好並指派群組</button>
             </div>
         </div>
 
         <div id="historyTab" class="hidden">
+            <div class="card" style="border: 1px solid rgba(241, 196, 15, 0.3);">
+                <div class="card-title" style="color: var(--warning);">⏱️ 自訂足跡檢視區間</div>
+                <div class="time-picker-row">
+                    <div class="input-group">
+                        <label>起始時間 (Start)</label>
+                        <input type="datetime-local" id="historyStart">
+                    </div>
+                    <div class="input-group">
+                        <label>結束時間 (End)</label>
+                        <input type="datetime-local" id="historyEnd">
+                    </div>
+                </div>
+                <button class="btn btn-primary" style="background: var(--warning); color: #000; box-shadow: none;" onclick="loadHistoryData()">🔍 撈取並套用區間足跡</button>
+            </div>
+
             <div class="card">
-                <div class="card-title">🗺️ 歷史移動軌跡與熱點圖</div>
+                <div class="card-title">🗺️ 移動軌跡與空間熱點圖</div>
                 <div class="map-container" id="historyMap"></div>
             </div>
 
             <div class="card">
-                <div class="card-title">📊 停留時間統計分析</div>
-                <div style="width: 100%; height: 200px; position: relative;">
+                <div class="card-title">📊 該區間分時活躍度統計</div>
+                <div style="width: 100%; height: 180px; position: relative;">
                     <canvas id="historyChart"></canvas>
                 </div>
             </div>
@@ -220,7 +247,6 @@
         let watchId = null;
         let currentPosition = null;
         
-        // 地圖相關
         let radarMap = null;
         let historyMap = null;
         let myLocationMarker = null;
@@ -232,6 +258,7 @@
         let historyPolyline = null;
         let historyChartInstance = null;
         let isRegisterMode = false;
+        let notifiedFriends = new Set(); // 記錄已經彈出過通知的同好，避免重複轟炸
 
         const tribeMeta = {
             'food': { label: '🍕 美食族', class: 'marker-food', color: 'var(--tribe-food)' },
@@ -253,6 +280,24 @@
             const t = document.createElement('div'); t.className = `toast ${type}`; t.textContent = msg;
             document.getElementById('toastContainer').appendChild(t);
             setTimeout(() => { if (t.parentNode) t.remove(); }, 3500);
+        }
+
+        // 📡 UI設計師操刀：靠近攔截跳窗通知邏輯
+        function triggerProximityAlert(friendName, groupLabel, currentDist, maxDist) {
+            if (notifiedFriends.has(friendName)) return; // 已經跳過了，先不重複跳
+            
+            notifiedFriends.add(friendName);
+            document.getElementById('modalMessage').innerHTML = `
+                ⚡ <b>雷達攔截成功！</b> ⚡<br><br>
+                您的 ${groupLabel} 同好 <b>【${friendName}】</b> 已經進入您的雷達守備範圍！<br><br>
+                目前精確距離：<span style="color:var(--accent); font-weight:bold; font-size:1.2rem;">${Math.round(currentDist)} 公尺</span><br>
+                (您設定的警示距離為：${maxDist} 公尺)
+            `;
+            document.getElementById('notificationModal').classList.remove('hidden');
+        }
+
+        function closeNotificationModal() {
+            document.getElementById('notificationModal').classList.add('hidden');
         }
 
         function toggleAuthMode() {
@@ -305,13 +350,14 @@
             radarCircle = L.circle([lat, lng], { radius: 1000, color: '#66fcf1', weight: 1.2, fillColor: '#66fcf1', fillOpacity: 0.03 }).addTo(radarMap);
         }
 
-        // 🎨 渲染同好列表
+        // 🧠 IT 核心更新：在渲染雷達位置的同時，即時進行靠近通知判定！
         function renderRadarTribes(friends) {
             layerGroups.forEach(l => radarMap.removeLayer(l));
             layerGroups = [];
             if (!radarMap || !currentPosition) return;
 
             friends.forEach((f, idx) => {
+                // 模擬分散點經緯度
                 const offsetLat = (Math.sin(idx * 3) * 0.006);
                 const offsetLng = (Math.cos(idx * 3) * 0.006);
                 const fLat = currentPosition.lat + offsetLat;
@@ -320,15 +366,22 @@
                 const tKey = f.team;
                 const meta = tribeMeta[tKey] || { label: tKey, class: 'marker-custom', color: 'var(--tribe-custom)' };
 
+                // 1. 計算目前的實際距離 (公尺)
+                const currentDist = calcDistance(currentPosition.lat, currentPosition.lng, fLat, fLng);
+                
+                // 2. 核心找回：判定是否低於設定值並進行主動彈窗通知
+                const maxAlertRadius = f.alert_radius || 1000;
+                if (f.alert_enabled && currentDist <= maxAlertRadius) {
+                    triggerProximityAlert(f.friend_nickname, meta.label, currentDist, maxAlertRadius);
+                }
+
                 const m = L.marker([fLat, fLng], {
                     icon: L.divIcon({ className: meta.class, iconSize: [12, 12], iconAnchor: [6, 6] })
-                }).addTo(radarMap).bindPopup(`<b>${f.friend_nickname}</b><br>生活分类: ${meta.label}`);
-
+                }).addTo(radarMap).bindPopup(`<b>${f.friend_nickname}</b><br>分類: ${meta.label}<br>距離: ${Math.round(currentDist)}m`);
                 layerGroups.push(m);
             });
         }
 
-        // 🔥 發射動態廣播波
         async function launchWaveSignal() {
             if (!currentPosition) { showToast('⚠️ 請先開啟定位', 'warning'); return; }
             const tribeType = document.getElementById('waveTribe').value;
@@ -336,12 +389,9 @@
             if (!desc) { showToast('⚠️ 請輸入揪團內容', 'warning'); return; }
 
             await supabaseClient.from('static_targets').insert({
-                user_id: currentUser.id,
-                name: `${tribeType}||${desc}||1000`, 
-                lat: currentPosition.lat,
-                lng: currentPosition.lng
+                user_id: currentUser.id, name: `${tribeType}||${desc}||1000`, lat: currentPosition.lat, lng: currentPosition.lng
             });
-            showToast('🚀 揪團探測波發射成功！', 'success');
+            showToast('🚀 揪團訊號發射成功！', 'success');
             document.getElementById('waveDesc').value = '';
             loadAllWaves();
         }
@@ -364,8 +414,6 @@
 
                     if (dist <= allowedRadius) {
                         const meta = tribeMeta[tribeKey] || { label: '生活圈', color: '#fff' };
-                        const isMine = t.user_id === currentUser.id;
-
                         const m = L.marker([t.lat, t.lng], {
                             icon: L.divIcon({ className: 'signal-pulse-marker', iconSize: [10, 10] })
                         }).addTo(radarMap).bindPopup(`<b>${meta.label}揪團</b><br>${description}`);
@@ -378,28 +426,34 @@
             listEl.innerHTML = html || '<div style="color:var(--text); padding:5px;">周圍暫無動態訊號</div>';
         }
 
-        // 🔄 記錄個人歷史足跡到資料庫（核心完整保留）
         async function logLocationToHistory(lat, lng) {
             if (!currentUser) return;
             await supabaseClient.from('location_logs').insert({
-                user_id: currentUser.id,
-                lat: lat,
-                lng: lng,
-                device_status: 'Active'
+                user_id: currentUser.id, lat: lat, lng: lng, device_status: 'Active'
             });
         }
 
-        // 🗺️ 載入足跡紀錄、繪製熱點圖與折線（歷史功能復活）
         async function loadHistoryData() {
             if (!currentUser) return;
-            const { data: logs, error } = await supabaseClient.from('location_logs')
-                .select('*')
-                .eq('user_id', currentUser.id)
-                .order('created_at', { ascending: true });
+            let query = supabaseClient.from('location_logs').select('*').eq('user_id', currentUser.id);
 
-            if (error || !logs || logs.length === 0) return;
+            const startTime = document.getElementById('historyStart').value;
+            const endTime = document.getElementById('historyEnd').value;
 
-            // 1. 初始化歷史地圖
+            if (startTime) { query = query.gte('created_at', new Date(startTime).toISOString()); }
+            if (endTime) { query = query.lte('created_at', new Date(endTime).toISOString()); }
+
+            const { data: logs, error } = await query.order('created_at', { ascending: true });
+
+            if (error) { showToast('❌ 撈取足跡歷程失敗', 'error'); return; }
+            if (!logs || logs.length === 0) {
+                showToast('💡 該區間內查無足跡紀錄！', 'warning');
+                if (historyPolyline) historyMap.removeLayer(historyPolyline);
+                if (historyHeatLayer) historyMap.removeLayer(historyHeatLayer);
+                if (historyChartInstance) historyChartInstance.destroy();
+                return;
+            }
+
             if (!historyMap) {
                 historyMap = L.map('historyMap', { zoomControl: false }).setView([logs[0].lat, logs[0].lng], 13);
                 L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(historyMap);
@@ -407,27 +461,24 @@
                 historyMap.setView([logs[logs.length - 1].lat, logs[logs.length - 1].lng]);
             }
 
-            // 2. 繪製歷史軌跡折線
             const latlngs = logs.map(log => [log.lat, log.lng]);
             if (historyPolyline) historyMap.removeLayer(historyPolyline);
-            historyPolyline = L.polyline(latlngs, { color: 'var(--accent)', weight: 3, opacity: 0.7 }).addTo(historyMap);
+            historyPolyline = L.polyline(latlngs, { color: 'var(--accent)', weight: 4, opacity: 0.85 }).addTo(historyMap);
 
-            // 3. 繪製熱點圖
-            const heatPoints = logs.map(log => [log.lat, log.lng, 0.5]);
+            const heatPoints = logs.map(log => [log.lat, log.lng, 0.6]);
             if (historyHeatLayer) historyMap.removeLayer(historyHeatLayer);
             if (L.heatLayer) {
-                historyHeatLayer = L.heatLayer(heatPoints, { radius: 15, blur: 10, maxZoom: 17 }).addTo(historyMap);
+                historyHeatLayer = L.heatLayer(heatPoints, { radius: 18, blur: 12, maxZoom: 16 }).addTo(historyMap);
             }
 
-            // 4. 統計停留時間圖表 (Chart.js)
             renderHistoryChart(logs);
+            showToast(`📊 已套用並過濾 ${logs.length} 筆歷史足跡`, 'success');
         }
 
         function renderHistoryChart(logs) {
             const ctx = document.getElementById('historyChart').getContext('2d');
             if (historyChartInstance) historyChartInstance.destroy();
 
-            // 簡易模擬分時段統計點數
             const hours = Array(24).fill(0);
             logs.forEach(log => {
                 const date = new Date(log.created_at);
@@ -437,9 +488,9 @@
             historyChartInstance = new Chart(ctx, {
                 type: 'bar',
                 data: {
-                    labels: Array.from({length: 24}, (_, i) => `${i}點`),
+                    labels: Array.from({length: 24}, (_, i) => `${i}h`),
                     datasets: [{
-                        label: '足跡探測活躍度',
+                        label: '活躍點數',
                         data: hours,
                         backgroundColor: 'rgba(102, 252, 241, 0.4)',
                         borderColor: 'var(--accent)',
@@ -454,34 +505,49 @@
             });
         }
 
+        function setDefaultTimeRange() {
+            const now = new Date();
+            const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+            const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+            
+            const pad = num => String(num).padStart(2, '0');
+            const formatLocal = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+            
+            document.getElementById('historyStart').value = formatLocal(start);
+            document.getElementById('historyEnd').value = formatLocal(end);
+        }
+
         async function loadAllData() {
             if (!currentUser) return;
-            const [fRes] = await Promise.all([
-                supabaseClient.from('friendships').select('*').eq('user_id', currentUser.id)
-            ]);
-            const friends = fRes.data || [];
+            const { data: friends } = await supabaseClient.from('friendships').select('*').eq('user_id', currentUser.id);
+            const list = friends || [];
             
-            // 渲染好友清單 UI
-            document.getElementById('friendList').innerHTML = friends.map(f => {
+            document.getElementById('friendList').innerHTML = list.map(f => {
                 const meta = tribeMeta[f.team] || { label: f.team, color: 'var(--tribe-custom)' };
                 return `
                     <div class="list-item" style="justify-content:space-between;">
-                        <div><span class="tribe-badge" style="background:${meta.color}">${meta.label}</span> <b>${f.friend_nickname}</b></div>
+                        <div>
+                            <span class="tribe-badge" style="background:${meta.color}">${meta.label}</span> 
+                            <b>${f.friend_nickname}</b> 
+                            <span style="color:#85929e; font-size:0.7rem; margin-left:5px;">(🛎️ ${f.alert_radius}m)</span>
+                        </div>
                         <button class="btn btn-sm btn-danger" onclick="deleteFriend('${f.id}')">✕</button>
                     </div>
                 `;
             }).join('') || '<div style="color:var(--text); padding:15px; text-align:center;">暫無編組同好</div>';
 
-            renderRadarTribes(friends);
+            renderRadarTribes(list);
             loadAllWaves();
         }
 
         async function showAddFriendModal() {
             const email = prompt('請輸入對方的註冊 Email：'); if (!email) return;
             const nickname = prompt('請輸入對方的同好稱呼：'); if (!nickname) return;
-            const choice = prompt(`群組分類:\n1:🍕美食 2:🛍️購物 3:📚自習 4:💪健身 5:🎣釣魚\n或直接輸入自訂群組`, '3');
+            const radiusInput = prompt('設定當同好靠近多少公尺內跳出通知？(預設 1000)', '1000');
+            const choice = prompt(`指派群組分類:\n1:🍕美食 2:🛍️購物 3:📚自習 4:💪健身 5:🎣釣魚\n或直接輸入自訂群組`, '3');
             if(!choice) return;
 
+            let radius = parseInt(radiusInput) || 1000;
             let tribe = choice === '1' ? 'food' : choice === '2' ? 'shop' : choice === '3' ? 'study' : choice === '4' ? 'gym' : choice === '5' ? 'fish' : choice.trim();
             let fid = crypto.randomUUID ? crypto.randomUUID() : 'f92c632a-0000-4000-8000-000000000000';
             
@@ -491,9 +557,9 @@
             } catch(e){}
 
             await supabaseClient.from('friendships').insert({
-                user_id: currentUser.id, friend_id: fid, friend_nickname: nickname, alert_radius: 1000, alert_enabled: true, team: tribe
+                user_id: currentUser.id, friend_id: fid, friend_nickname: nickname, alert_radius: radius, alert_enabled: true, team: tribe
             });
-            showToast('✅ 成功收錄至同好網格！', 'success');
+            showToast('✅ 成功收錄至同好網格，靠近通知設定成功！', 'success');
             loadAllData();
         }
 
@@ -518,7 +584,6 @@
                     initRadarMap(currentPosition.lat, currentPosition.lng);
                     loadAllData();
 
-                    // 🔥 每當位置更新，照舊儲存一筆軌跡到資料庫
                     logLocationToHistory(currentPosition.lat, currentPosition.lng);
 
                 }, err => console.log(err), { enableHighAccuracy: true });
@@ -545,7 +610,7 @@
         }
 
         async function handleLogout() { if(tracking) toggleTracking(); await supabaseClient.auth.signOut(); location.reload(); }
-        function showMainApp() { document.getElementById('authPage').classList.add('hidden'); document.getElementById('mainApp').classList.remove('hidden'); setTimeout(() => { initRadarMap(25.0478, 121.5170); }, 200); loadAllData(); }
+        function showMainApp() { document.getElementById('authPage').classList.add('hidden'); document.getElementById('mainApp').classList.remove('hidden'); setDefaultTimeRange(); setTimeout(() => { initRadarMap(25.0478, 121.5170); }, 200); loadAllData(); }
 
         window.onload = async function() {
             const sessionRes = await supabaseClient.auth.getSession();
