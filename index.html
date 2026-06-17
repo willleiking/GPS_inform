@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover, maximum-scale=1.0">
-    <title>📍 七龍珠雷達定位系統 - 雙隊抗衡版</title>
+    <title>⚔️ Tactical Radar - 戰域雷達聯網對抗系統</title>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
@@ -20,9 +20,9 @@
             --border: #2a2a3e;
             --text: #e8e8f0;
             --text2: #9898b0;
-            --accent: #4ade80; /* 雷達綠 */
-            --team-red: #f87171; /* 紅隊 */
-            --team-blue: #60a5fa; /* 藍隊 */
+            --accent: #4ade80; /* 科技雷達綠 */
+            --team-red: #f87171; /* 紅隊陣營 */
+            --team-blue: #60a5fa; /* 藍隊陣營 */
             --success: #4ade80;
             --warning: #facc15;
             --danger: #f87171;
@@ -160,7 +160,7 @@
             border: 1px solid var(--border);
         }
         
-        /* 🐉 七龍珠圓形雷達面板 */
+        /* 🐉 七龍珠經典圓形雷達面板 */
         .radar-map-wrapper {
             position: relative;
             border: 4px solid #333;
@@ -195,15 +195,15 @@
         }
         @keyframes radar-sweep { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
-        /* 🟢 中心點脈衝 */
+        /* 中心控制點 */
         .radar-pulse-icon { background: #2563eb; border: 2px solid #fff; border-radius: 50%; box-shadow: 0 0 10px #2563eb; }
         .radar-pulse-icon::after { content: ''; display: block; width: 100%; height: 100%; border-radius: 50%; background: rgba(37, 99, 235, 0.4); animation: pulse 1.8s infinite ease-out; }
         
-        /* 🔴 紅隊標記 */
+        /* 🔴 紅隊戰友標記 */
         .radar-red-icon { background: var(--team-red); border: 2px solid #fff; border-radius: 50%; box-shadow: 0 0 10px var(--team-red); }
         .radar-red-icon::after { content: ''; display: block; width: 100%; height: 100%; border-radius: 50%; background: rgba(248, 113, 113, 0.4); animation: pulse 1.8s infinite ease-out; }
 
-        /* 🔵 藍隊標記 */
+        /* 🔵 藍隊戰友標記 */
         .radar-blue-icon { background: var(--team-blue); border: 2px solid #fff; border-radius: 50%; box-shadow: 0 0 10px var(--team-blue); }
         .radar-blue-icon::after { content: ''; display: block; width: 100%; height: 100%; border-radius: 50%; background: rgba(96, 165, 250, 0.4); animation: pulse 1.8s infinite ease-out; }
 
@@ -231,38 +231,38 @@
 
     <div class="app-container" id="authPage">
         <div class="card" style="text-align:center; padding:25px;">
-            <h2 style="background:linear-gradient(135deg,#4ade80,#22c55e);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">📡 社群位置監控系統</h2>
-            <p style="color:var(--text2);font-size:0.8rem;">分組對抗、即時雷達探測、軌跡分析</p>
-            <p style="font-size:0.75rem; color: var(--warning);" id="connectionStatus">🔄 正在連線中...</p>
+            <h2 style="background:linear-gradient(135deg,#4ade80,#22c55e);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">⚔️ Tactical Radar</h2>
+            <p style="color:var(--text2);font-size:0.8rem;">專屬戰隊連線 · 即時陣營雷達 · 目標定點達標分析</p>
+            <p style="font-size:0.75rem; color: var(--warning);" id="connectionStatus">🔄 系統主機連線中...</p>
         </div>
         <div class="card">
-            <div class="card-title" id="authTitle">🔐 登入 / 註冊</div>
+            <div class="card-title" id="authTitle">🔐 終端驗證登入</div>
             <div class="input-group">
-                <label>Email</label>
+                <label>戰隊帳號 (Email)</label>
                 <input type="email" id="authEmail" placeholder="you@example.com">
             </div>
             <div class="input-group">
-                <label>密碼（至少 6 碼）</label>
+                <label>通訊密碼（至少 6 碼）</label>
                 <input type="password" id="authPassword" placeholder="••••••">
             </div>
             <div class="input-group hidden" id="nicknameGroup">
-                <label>顯示名稱</label>
-                <input type="text" id="authNickname" placeholder="你的暱稱">
+                <label>戰友代號（顯示暱稱）</label>
+                <input type="text" id="authNickname" placeholder="請輸入代號">
             </div>
-            <button class="btn btn-primary" id="authActionBtn" onclick="handleAuthAction()">登入</button>
-            <button class="btn btn-sm btn-outline" id="authToggleBtn" onclick="toggleAuthMode()">還沒有帳號？註冊</button>
+            <button class="btn btn-primary" id="authActionBtn" onclick="handleAuthAction()">登入終端</button>
+            <button class="btn btn-sm btn-outline" id="authToggleBtn" onclick="toggleAuthMode()">初次加入？註冊戰術代號</button>
         </div>
     </div>
 
     <div class="app-container hidden" id="mainApp">
         <div class="tab-nav">
-            <button class="tab-btn active" onclick="switchTab('monitor')">🟢 雷達探測</button>
-            <button class="tab-btn" onclick="switchTab('history')">📊 軌跡歷程</button>
+            <button class="tab-btn active" onclick="switchTab('monitor')">📡 陣營雷達波</button>
+            <button class="tab-btn" onclick="switchTab('history')">📊 戰術足跡</button>
         </div>
 
         <div id="monitorTab">
             <div class="card" style="align-items: center; background: #0c0d14;">
-                <div class="card-title" style="align-self: flex-start;">📡 雙隊對抗雷達</div>
+                <div class="card-title" style="align-self: flex-start;">📡 雙隊抗衡雷達分佈</div>
                 <div class="radar-map-wrapper">
                     <div id="radarMap"></div>
                     <div class="radar-crosshair"></div>
@@ -273,35 +273,35 @@
 
             <div class="card">
                 <div style="display:flex; gap:8px;">
-                    <button class="btn btn-primary" id="trackingBtn" onclick="toggleTracking()" style="flex:1;">▶️ 啟動雷達掃描</button>
-                    <button class="btn btn-sm btn-danger" onclick="handleLogout()">登出</button>
+                    <button class="btn btn-primary" id="trackingBtn" onclick="toggleTracking()" style="flex:1;">▶️ 啟動戰術雷達</button>
+                    <button class="btn btn-sm btn-danger" onclick="handleLogout()">中斷連線</button>
                 </div>
             </div>
 
             <div class="card" style="border: 1px dashed var(--accent);">
-                <div class="card-title">⚔️ 戰隊對抗名稱設定</div>
+                <div class="card-title">⚔️ 陣營對抗聯賽代稱設定</div>
                 <div style="display: flex; gap: 8px;">
                     <div class="input-group" style="flex: 1;">
-                        <label style="color: var(--team-red);">🔴 紅隊名稱</label>
+                        <label style="color: var(--team-red);">🔴 紅隊陣營名稱</label>
                         <input type="text" id="teamRedName" value="紅翼獵手" onchange="saveTeamNames()">
                     </div>
                     <div class="input-group" style="flex: 1;">
-                        <label style="color: var(--team-blue);">🔵 藍隊名稱</label>
+                        <label style="color: var(--team-blue);">🔵 藍隊陣營名稱</label>
                         <input type="text" id="teamBlueName" value="藍閃風暴" onchange="saveTeamNames()">
                     </div>
                 </div>
             </div>
 
             <div class="card">
-                <div class="card-title">👥 戰隊隊員列表（雷達分色顯示）</div>
+                <div class="card-title">👥 目前連線戰友列表（雷達分色顯示）</div>
                 <div id="friendList" style="max-height:160px; overflow-y:auto;">
-                    <div style="text-align:center;color:var(--text2);padding:20px;">👥 尚未綁定隊員</div>
+                    <div style="text-align:center;color:var(--text2);padding:20px;">👥 尚未編制戰友</div>
                 </div>
-                <button class="btn btn-sm btn-outline" onclick="showAddFriendModal()">＋ 招募隊員並分組</button>
+                <button class="btn btn-sm btn-outline" onclick="showAddFriendModal()">＋ 邀請戰友加入陣營</button>
             </div>
 
             <div class="card">
-                <div class="card-title">📍 定點目標區域</div>
+                <div class="card-title" id="targetAreaTitle">📍 戰術定點目標區域</div>
                 <div id="staticTargetList" style="max-height:140px; overflow-y:auto;"></div>
                 <button class="btn btn-sm btn-outline" onclick="showAddStaticTargetModal()">＋ 新增搜尋目標</button>
             </div>
@@ -309,7 +309,7 @@
 
         <div id="historyTab" class="hidden">
             <div class="card">
-                <div class="card-title">🗺️ 軌跡歷史地圖</div>
+                <div class="card-title">🗺️ 歷史戰術軌跡</div>
                 <div class="map-container" id="historyMap"></div>
             </div>
         </div>
@@ -341,33 +341,33 @@
         function toggleAuthMode() {
             isRegisterMode = !isRegisterMode;
             document.getElementById('nicknameGroup').classList.toggle('hidden', !isRegisterMode);
-            document.getElementById('authTitle').textContent = isRegisterMode ? '🔐 註冊新帳號' : '🔐 登入';
-            document.getElementById('authActionBtn').textContent = isRegisterMode ? '註冊' : '登入';
-            document.getElementById('authToggleBtn').textContent = isRegisterMode ? '已有帳號？登入' : '還沒有帳號？註冊';
+            document.getElementById('authTitle').textContent = isRegisterMode ? '🔐 註冊戰術代號' : '🔐 終端驗證登入';
+            document.getElementById('authActionBtn').textContent = isRegisterMode ? '註冊認證' : '登入終端';
+            document.getElementById('authToggleBtn').textContent = isRegisterMode ? '已有代號？返回登入' : '初次加入？註冊戰術代號';
         }
 
-        // 防禦連擊：修復 email rate limit exceeded 
+        // 防禦連擊：修復 email rate limit exceeded Bug
         async function handleAuthAction() {
             const btn = document.getElementById('authActionBtn');
             const email = document.getElementById('authEmail').value.trim();
             const password = document.getElementById('authPassword').value;
             
-            if (!email || !password) { showToast('⚠️ 請完整填寫欄位', 'error'); return; }
+            if (!email || !password) { showToast('⚠️ 請完整填寫驗證欄位', 'error'); return; }
             
             btn.disabled = true;
-            btn.textContent = '處理中...請稍候';
+            btn.textContent = '終端編譯中...';
 
             try {
                 if (isRegisterMode) {
                     const nickname = document.getElementById('authNickname').value.trim();
-                    if (!nickname) { showToast('⚠️ 請填寫暱稱', 'error'); btn.disabled = false; return; }
+                    if (!nickname) { showToast('⚠️ 請填寫戰友代號', 'error'); btn.disabled = false; return; }
                     
                     const { data, error } = await supabaseClient.auth.signUp({
                         email, password, options: { data: { nickname } }
                     });
                     if (error) throw error;
                     
-                    showToast('🎉 註冊成功！如果收到限制提示，請直接嘗試登入。', 'success');
+                    showToast('🎉 代號註冊成功！若因頻率觸發限制，請直接登入試試。', 'success');
                     toggleAuthMode();
                 } else {
                     const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
@@ -376,15 +376,14 @@
                     showMainApp();
                 }
             } catch (e) {
-                // 如果遇到頻率限制，特別優化提示訊息
                 if (e.message.includes('rate limit')) {
-                    showToast('⚠️ 伺服器郵件頻率限制，請等 1 分鐘後再試，或嘗試直接登入。', 'error');
+                    showToast('⚠️ 伺服器頻率防護，請靜候 1 分鐘後再試，或嘗試直接登入。', 'error');
                 } else {
-                    showToast('❌ ' + e.message, 'error');
+                    showToast('❌ 驗證失敗: ' + e.message, 'error');
                 }
             } finally {
                 btn.disabled = false;
-                btn.textContent = isRegisterMode ? '註冊' : '登入';
+                btn.textContent = isRegisterMode ? '註冊認證' : '登入終端';
             }
         }
 
@@ -416,16 +415,16 @@
             radarCircle = L.circle([lat, lng], { radius: 1000, color: '#4ade80', weight: 1.5, fillColor: '#4ade80', fillOpacity: 0.05 }).addTo(radarMap);
         }
 
-        // 🔴🔵 雷達雙色陣營渲染
+        // 🔴🔵 雷達雙色陣營渲染核心
         function renderRadarTeams(friends) {
             teamLayers.forEach(l => radarMap.removeLayer(l));
             teamLayers = [];
             if (!radarMap || !currentPosition) return;
 
             friends.forEach((f, idx) => {
-                // 模擬座標偏移，防呆模擬展示
-                const offsetLat = (Math.sin(idx * 2) * 0.006);
-                const offsetLng = (Math.cos(idx * 2) * 0.006);
+                // 戰友雷達模擬展示位移
+                const offsetLat = (Math.sin(idx * 2.5) * 0.007);
+                const offsetLng = (Math.cos(idx * 2.5) * 0.007);
                 const fLat = currentPosition.lat + offsetLat;
                 const fLng = currentPosition.lng + offsetLng;
 
@@ -461,7 +460,7 @@
                 const targets = tRes.data || [];
                 document.getElementById('staticTargetList').innerHTML = targets.map(t => `
                     <div class="list-item" style="justify-content:space-between;">
-                        <span>📍 ${t.name}</span>
+                        <span>📍 目標點: ${t.name}</span>
                         <button class="btn btn-sm btn-danger" onclick="deleteItem('static_targets','${t.id}')">✕</button>
                     </div>
                 `).join('');
@@ -470,7 +469,7 @@
 
         function renderFriendListUI(friends) {
             const el = document.getElementById('friendList');
-            if(!friends.length) { el.innerHTML = `<div style="text-align:center;color:var(--text2);padding:20px;">👥 尚未綁定隊員</div>`; return; }
+            if(!friends.length) { el.innerHTML = `<div style="text-align:center;color:var(--text2);padding:20px;">👥 尚未召集任何陣營戰友</div>`; return; }
 
             const rName = localStorage.getItem('team_red_name') || '紅隊';
             const bName = localStorage.getItem('team_blue_name') || '藍隊';
@@ -489,32 +488,31 @@
             }).join('');
         }
 
-        // 🛠️ 徹底修復 null value in column "friend_id" 
+        // 🛠️ 徹底解決 null value in column "friend_id" Bug
         async function showAddFriendModal() {
-            const email = prompt('請輸入隊員 Email：'); if (!email) return;
-            const nickname = prompt('請輸入隊員顯示暱稱：'); if (!nickname) return;
+            const email = prompt('請輸入戰友註冊 Email：'); if (!email) return;
+            const nickname = prompt('請輸入戰友代號暱稱：'); if (!nickname) return;
             
             const rName = localStorage.getItem('team_red_name') || '紅隊';
             const bName = localStorage.getItem('team_blue_name') || '藍隊';
-            const choice = prompt(`請分配陣營：\n輸入 1 加入 [🔴 ${rName}]\n輸入 2 加入 [🔵 ${bName}]`, '1');
+            const choice = prompt(`分配至哪一個陣營？\n輸入 1 加入 [🔴 ${rName}]\n輸入 2 加入 [🔵 ${bName}]`, '1');
             const selectedTeam = choice === '2' ? 'blue' : 'red';
 
-            showToast('🔄 正在綁定戰隊中...', 'info');
+            showToast('🔄 正在同步戰術合約編制...', 'info');
 
-            // 核心修復：如果對方還沒有註冊，直接給一個隨機產生的虛擬 UUID 作為預設防呆值
+            // 核心修復：找不到 UUID 時自動產生防呆虛擬 UUID，避免不為空限制錯誤
             let finalFriendId = crypto.randomUUID ? crypto.randomUUID() : 'f92c632a-0000-4000-8000-000000000000';
             
             try {
                 const { data: pData } = await supabaseClient.from('profiles').select('id').eq('email', email.trim()).single();
                 if (pData && pData.id) finalFriendId = pData.id;
             } catch(e) {
-                console.log("對方尚未在系統中註冊，啟用防呆虛擬 ID 進行綁定。");
+                console.log("該外部帳號尚未生成 Profiles，已由終端派發虛擬防呆 ID 完成連結。");
             }
 
-            // 寫入包含 team 欄位的資料
             const { error } = await supabaseClient.from('friendships').insert({
                 user_id: currentUser.id,
-                friend_id: finalFriendId, // 永遠不會為 null
+                friend_id: finalFriendId, 
                 friend_nickname: nickname,
                 alert_radius: 800,
                 alert_enabled: true,
@@ -522,9 +520,9 @@
             });
 
             if (error) {
-                showToast('❌ 新增失敗：' + error.message, 'error');
+                showToast('❌ 編制失敗：' + error.message, 'error');
             } else {
-                showToast(`✅ 已將 ${nickname} 成功召募至 ${selectedTeam === 'red' ? rName : bName}！`, 'success');
+                showToast(`✅ 已將 ${nickname} 成功納入 ${selectedTeam === 'red' ? rName : bName} 陣營！`, 'success');
                 loadAllData();
             }
         }
@@ -532,24 +530,24 @@
         async function deleteItem(table, id) {
             await supabaseClient.from(table).delete().eq('id', id);
             loadAllData();
-            showToast('已成功移除項目', 'info');
+            showToast('已解除該點編制', 'info');
         }
 
         function toggleTracking() {
             if (tracking) {
                 if (watchId) navigator.geolocation.clearWatch(watchId);
                 tracking = false;
-                document.getElementById('trackingBtn').textContent = '▶️ 啟動雷達掃描';
+                document.getElementById('trackingBtn').textContent = '▶️ 啟動戰術雷達';
                 document.getElementById('trackingBtn').style.background = 'var(--accent)';
                 document.getElementById('trackingBtn').style.color = '#000';
             } else {
-                if (!navigator.geolocation) { showToast('❌ 裝置不支援 GPS', 'error'); return; }
+                if (!navigator.geolocation) { showToast('❌ 裝置未開放定位權限', 'error'); return; }
                 watchId = navigator.geolocation.watchPosition(pos => {
                     currentPosition = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-                    document.getElementById('currentLocation').textContent = `中心點 ➔ 緯度: ${currentPosition.lat.toFixed(5)}, 經度: ${currentPosition.lng.toFixed(5)}`;
+                    document.getElementById('currentLocation').textContent = `雷達波中心 ➔ 緯度: ${currentPosition.lat.toFixed(5)}, 經度: ${currentPosition.lng.toFixed(5)}`;
                     initRadarMap(currentPosition.lat, currentPosition.lng);
                     loadAllData();
-                }, err => showToast('⚠️ 訊號弱: ' + err.message, 'warning'), { enableHighAccuracy: true });
+                }, err => showToast('⚠️ 訊號微弱: ' + err.message, 'warning'), { enableHighAccuracy: true });
                 
                 tracking = true;
                 document.getElementById('trackingBtn').textContent = '⏸️ 關閉雷達掃描';
@@ -565,7 +563,7 @@
         window.onload = async function() {
             const sessionRes = await supabaseClient.auth.getSession();
             if (sessionRes.data.session?.user) { currentUser = sessionRes.data.session.user; showMainApp(); }
-            document.getElementById('connectionStatus').textContent = '🟢 雷達主機已連線';
+            document.getElementById('connectionStatus').textContent = '🟢 戰術主機安全連線中';
             document.getElementById('connectionStatus').style.color = 'var(--success)';
         };
     </script>
