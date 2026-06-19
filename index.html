@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>🟢 TribeRadar 終極商務引力雷達</title>
+    <title>🟢 TribeRadar 3.0 終極商務引力雷達體系</title>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -54,6 +54,14 @@
         .toast.match { background: #e67e22; box-shadow: 0 0 15px #e67e22; border: 2px solid #fff; }
         .toast.success { background: #27ae60; }
         .toast.error { background: #c0392b; }
+
+        /* 🤖 即時聊天室 UI */
+        .chat-box { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 500px; background: #1a222d; border-radius: 12px 12px 0 0; border: 1px solid var(--accent); z-index: 10000; display: flex; flex-direction: column; box-shadow: 0 -5px 25px rgba(0,0,0,0.5); }
+        .chat-header { background: #111720; padding: 12px; color: #fff; font-weight: bold; display: flex; justify-content: space-between; align-items: center; border-radius: 12px 12px 0 0; }
+        .chat-messages-body { height: 200px; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 8px; font-size: 0.85rem; }
+        .msg-line { max-width: 80%; padding: 8px 12px; border-radius: 8px; line-height: 1.3; }
+        .msg-me { background: var(--accent); color: #000; align-self: flex-end; border-bottom-right-radius: 2px; }
+        .msg-other { background: var(--surface2); color: #fff; align-self: flex-start; border-bottom-left-radius: 2px; }
     </style>
 </head>
 <body>
@@ -62,7 +70,7 @@
 
     <div class="app-container" id="authPage">
         <div class="card" style="text-align:center;">
-            <h2 style="color:var(--accent)">🟢 TribeRadar 商務引力雷達</h2>
+            <h2 style="color:var(--accent)">🟢 TribeRadar 商務引力雷達 3.0</h2>
             <p style="font-size:0.75rem; color:var(--accent);" id="connStatus">探索主機連線中...</p>
         </div>
         <div class="card">
@@ -113,9 +121,9 @@
         </div>
 
         <div class="card" style="border: 1px solid var(--team-color);">
-            <div class="card-title" style="color: var(--team-color);">🔥 我的即時組隊揪團狀態</div>
+            <div class="card-title" style="color: var(--team-color);">🔥 我的即時組隊揪團看板 (掛載於個人 GPS)</div>
             <div style="display:flex; flex-direction:column; gap:6px;">
-                <input type="text" id="teamTitle" placeholder="輸入目前招募隊伍名稱 (如: 健身工廠練腿揪團)">
+                <input type="text" id="teamTitle" placeholder="輸入招募隊伍名稱 (如: 健身工廠練腿缺一)">
                 <select id="teamCategory">
                     <option value="健身團">健身團</option>
                     <option value="吃貨團">吃貨團</option>
@@ -123,7 +131,7 @@
                     <option value="科技新創">科技新創</option>
                 </select>
                 <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-top:4px;">
-                    <button class="btn" style="background:var(--team-color); color:#fff;" onclick="changeTeamStatus(true)">🟢 開啟組隊狀態</button>
+                    <button class="btn" style="background:var(--team-color); color:#fff;" onclick="changeTeamStatus(true)">🟢 開啟組隊顯示</button>
                     <button class="btn" style="background:var(--surface2); color:#fff;" onclick="changeTeamStatus(false)">🛑 關閉組隊顯示</button>
                 </div>
             </div>
@@ -142,17 +150,17 @@
                 </select>
             </div>
             <div style="display:flex; flex-direction:column; gap:6px;">
-                <label style="font-size:0.75rem; color:#fff;">💡 我擁有的資源：</label>
-                <textarea id="myHasWhat" placeholder="例如：我有多年全端開發技術、供應鏈工廠資源..."></textarea>
+                <label style="font-size:0.75rem; color:#fff;">💡 (1) 我擁有的資源：</label>
+                <textarea id="myHasWhat" placeholder="我有多年全端開發技術、供應鏈工廠資源..."></textarea>
                 
-                <label style="font-size:0.75rem; color:#fff;">🤝 我可以幫到你什麼：</label>
-                <textarea id="myCanHelp" placeholder="例如：可以幫你建置品牌網站、引薦原廠..."></textarea>
+                <label style="font-size:0.75rem; color:#fff;">🤝 (2) 我可以幫到你什麼：</label>
+                <textarea id="myCanHelp" placeholder="可以幫你建置品牌網站、引薦原廠..."></textarea>
                 
-                <label style="font-size:0.75rem; color:#fff;">📢 我可以如何幫你曝光 / 串聯資源：</label>
-                <textarea id="myCanExpose" placeholder="例如：可在破萬人技術社群電子報曝光、串聯創投..."></textarea>
+                <label style="font-size:0.75rem; color:#fff;">📢 (3) 我可以如何幫你曝光：</label>
+                <textarea id="myCanExpose" placeholder="可在破萬人技術社群電子報曝光、串聯創投..."></textarea>
                 
-                <label style="font-size:0.75rem; color:#e67e22; font-weight:bold;">🔍 我的即時資源需求 (用於路過自動配對通知)：</label>
-                <textarea id="myNeedWhat" placeholder="例如：我需要尋找行銷團隊、或尋找健身核心夥伴..."></textarea>
+                <label style="font-size:0.75rem; color:#e67e22; font-weight:bold;">🔍 (4) 我的資源需求 (路過自動對標匹配通知核心)：</label>
+                <textarea id="myNeedWhat" placeholder="填寫你需要的資源，當附近陌生人擁有此資源時，系統將主動發起雷達對標警報！"></textarea>
             </div>
             <button class="btn btn-primary" onclick="saveProfile()">💾 儲存並更新引力設定</button>
         </div>
@@ -167,10 +175,10 @@
         </div>
 
         <div class="card">
-            <div class="card-title">🧑‍🤝‍🧑 我的綁定好友名單</div>
+            <div class="card-title">🧑‍🤝‍🧑 我的綁定好友與文字通訊(保留20天)</div>
             <div id="friendList" style="display:flex; flex-direction:column; gap:6px;"></div>
             <div style="display:grid; grid-template-columns: 1fr auto; gap:6px;">
-                <input type="text" id="fEmail" placeholder="輸入好友註冊的 Email">
+                <input type="text" id="fEmail" placeholder="輸入好友註冊的 Email 進行綁定">
                 <button class="btn btn-outline" onclick="addFriend()">+ 綁定</button>
             </div>
         </div>
@@ -197,6 +205,18 @@
 
     </div>
 
+    <div class="chat-box hidden" id="chatBoxPanel">
+        <div class="chat-header">
+            <span id="chatTitle">與 好友 聊天中</span>
+            <button onclick="closeChat()" style="background:transparent; color:#fff; border:none; font-size:1.2rem; cursor:pointer;">×</button>
+        </div>
+        <div class="chat-messages-body" id="chatMessagesBody"></div>
+        <div style="display:flex; padding:8px; gap:6px; background:#111720;">
+            <input type="text" id="chatInput" placeholder="輸入訊息...">
+            <button class="btn btn-primary" style="padding:4px 14px; width:auto; border-radius:8px;" onclick="sendChatMessage()">發送</button>
+        </div>
+    </div>
+
     <script>
         // ======= 🚀 核心 Supabase 設定 =======
         window.SUPABASE_URL = 'https://hknxdvefnuxgyepuuqra.supabase.co';
@@ -209,6 +229,8 @@
         let mapElements = [], historyMarkers = [];
         let isRegister = false;
         let lastNotifiedUsers = new Set(); 
+        let activeChatUserId = null;
+        let chatInterval = null;
 
         function showToast(msg, type='info') {
             const t = document.createElement('div'); t.className = `toast ${type}`; t.textContent = msg;
@@ -255,7 +277,7 @@
             } catch(e) { showToast(e.message, 'error'); }
         }
 
-        // ======= 🚀 個人簡介與引力設定模組 =======
+        // ======= 🚀 個人簡介與引力對標模組 =======
         async function loadProfileData() {
             if(!currentUser) return;
             const { data } = await window.dbClient.from('profiles').select('*').eq('id', currentUser.id).single();
@@ -266,7 +288,6 @@
                 document.getElementById('myCanExpose').value = data.can_expose || '';
                 document.getElementById('myNeedWhat').value = data.need_what || '';
                 
-                // 讀取當前組隊資訊
                 if(data.is_teaming) {
                     document.getElementById('teamTitle').value = data.team_name || '';
                     document.getElementById('teamCategory').value = data.team_category || '健身團';
@@ -289,13 +310,13 @@
             else { showToast('💾 引力資源與自介更新成功！', 'success'); refreshRadarMarkers(); }
         }
 
-        // ======= 🔥 核心修正：一鍵開關個人 GPS 上的組隊狀態 =======
+        // ======= 🔥 一鍵開關掛載個人 GPS 的組隊狀態 =======
         async function changeTeamStatus(enable) {
             if(!currentUser) return;
             const title = document.getElementById('teamTitle').value.trim();
             const cat = document.getElementById('teamCategory').value;
 
-            if(enable && !title) { showToast('⚠️ 請先輸入隊伍名稱再開啟組隊！', 'error'); return; }
+            if(enable && !title) { showToast('⚠️ 請先輸入目前的組隊招募隊伍名稱！', 'error'); return; }
 
             const updates = {
                 is_teaming: enable,
@@ -304,14 +325,13 @@
             };
 
             const { error } = await window.dbClient.from('profiles').update(updates).eq('id', currentUser.id);
-            if(error) {
-                showToast('變更組隊狀態失敗: ' + error.message, 'error');
-            } else {
+            if(error) showToast('變更組隊狀態失敗: ' + error.message, 'error');
+            else {
                 if(enable) {
-                    showToast(`🔴 已成功開啟組隊！目前掛載在您的 GPS 點上`, 'success');
+                    showToast(`🔴 已成功開啟組隊看板！已掛載至您的實時 GPS 點`, 'success');
                     document.getElementById('myActiveTeamStatus').innerHTML = `🔴 隊伍招募中: ${title} (${cat})`;
                 } else {
-                    showToast(`🛑 已關閉組隊顯示`, 'info');
+                    showToast(`🛑 已關閉組隊看板顯示`, 'info');
                     document.getElementById('myActiveTeamStatus').innerHTML = `當前狀態：未開啟組隊`;
                     document.getElementById('teamTitle').value = '';
                 }
@@ -319,7 +339,7 @@
             }
         }
 
-        // ======= 🛰️ 雷達地圖中心 =======
+        // ======= 🛰️ 雷達與實時地圖控制中心 =======
         function initRadarMap(lat, lng) {
             if (radarMap) {
                 radarMap.setView([lat, lng]);
@@ -332,7 +352,7 @@
 
             myMarker = L.marker([lat, lng], {
                 icon: L.divIcon({ className: '', html: `<div style="background:#fff; width:14px; height:14px; border-radius:50%; border:3px solid var(--accent); box-shadow:0 0 12px var(--accent);"></div>`, iconSize:[14,14], iconAnchor:[7,7] })
-            }).addTo(radarMap).bindPopup("<b>✨ 我在此處 (雷達發射中心)</b>");
+            }).addTo(radarMap).bindPopup("<b>✨ 我在此處 (雷達探測核心)</b>");
 
             radarCircle = L.circle([lat, lng], { radius: 800, color: 'var(--accent)', weight: 1, fillColor: 'var(--accent)', fillOpacity: 0.01 }).addTo(radarMap);
         }
@@ -365,7 +385,7 @@
             }
         }
 
-        // ======= 📡 核心：刷新與多功能過濾（組隊紅點篩選） =======
+        // ======= 📡 核心演算過濾刷新標記 =======
         async function refreshRadarMarkers() {
             if(!radarMap || !currentPosition) return;
 
@@ -381,42 +401,38 @@
             const { data: myFriends } = await window.dbClient.from('friendships').select('friend_email');
             const friendEmails = myFriends ? myFriends.map(f => f.friend_email) : [];
 
-            // 讀取所有具有位置的人
             const { data: users } = await window.dbClient.from('profiles').select('*').not('current_lat', 'is', null);
             
             if(users) {
                 const myNeed = document.getElementById('myNeedWhat').value.toLowerCase();
 
                 users.forEach(u => {
-                    // 如果這個人「正在組隊」，且我們勾選了依據雷達類別篩選
-                    // 如果他設定的組隊類別不等於雷達篩選類別，且雷達不是選「全類別」，直接過濾掉
+                    // 自適應組隊篩選：若組隊中看組隊類別，否則看主類別
                     const targetCategory = u.is_teaming ? u.team_category : u.category;
                     const isMatchCategory = (selectedCategory === '全類別' || targetCategory === selectedCategory);
                     if(!isMatchCategory) return;
 
                     const isFriend = friendEmails.includes(u.email);
 
-                    // 🎯 核心圖層控制：
+                    // 核心圖層控制判斷
                     if (u.is_teaming) {
-                        // 如果這個人正在組隊，但使用者「取消勾選」了組隊同好，就不顯示
                         if (!showTeams) return;
                     } else {
-                        // 普通狀態下，區分好友或陌生人開關
                         if (isFriend && !showFriends) return;
                         if (!isFriend && !showStrangers) return;
                     }
 
                     const dist = calcDistance(currentPosition.lat, currentPosition.lng, u.current_lat, u.current_lng);
                     
-                    // 碰撞引力通知
+                    // 陌生人路過引力配對對標提醒 (200公尺內碰撞)
                     if (u.id !== currentUser.id && dist <= 200 && myNeed.length > 0 && u.has_what) {
                         if (u.has_what.toLowerCase().includes(myNeed) && !lastNotifiedUsers.has(u.id)) {
-                            showToast(`📡 資源引力引爆！附近現適配對象：【${u.nickname}】！`, 'match');
+                            showToast(`📡 資源引力對標成功！附近現適配對象：【${u.nickname}】！他擁有的資源符合你的即時需求！`, 'match');
                             lastNotifiedUsers.add(u.id);
                         }
                     }
 
-                    // 🎨 顏色分配：正在組隊的直接套用耀眼紅點外圈！好友藍點，陌生人黃點
+                    // 點點顏色指派：組隊紅點外圈，好友藍點，陌生人黃點
                     let dotHtml = '';
                     if (u.is_teaming) {
                         dotHtml = `<div style="background:var(--team-color); width:16px; height:16px; border-radius:50%; border:2px solid #fff; box-shadow:0 0 12px var(--team-color); display:flex; align-items:center; justify-content:center; font-size:9px; color:#fff; font-weight:bold;">🔥</div>`;
@@ -429,22 +445,22 @@
                         icon: L.divIcon({ html: dotHtml, iconSize:[16,16], iconAnchor:[8,8] })
                     }).addTo(radarMap);
 
-                    // 點開彈出個人引力自介 + 組隊看板
+                    // 建立彈出看板資訊 (包含臨時性組員簡介查看功能)
                     let teamBannerHtml = u.is_teaming 
-                        ? `<div style="background:#e74c3c; color:#fff; padding:6px; border-radius:4px; margin-bottom:8px; font-size:11px;">🚀 <b>正在發起組隊：</b><br>${u.team_name} (${u.team_category})<br><button onclick="showToast('🤝 已送出加入申請！','success')" style="margin-top:4px; border:none; background:#fff; color:#e74c3c; font-weight:bold; padding:2px 6px; border-radius:3px; cursor:pointer;">申請加入隊伍</button></div>`
+                        ? `<div style="background:#e74c3c; color:#fff; padding:6px; border-radius:4px; margin-bottom:8px; font-size:11px;">🚀 <b>正在發起組隊：</b><br>${u.team_name} (${u.team_category})<br><button onclick="showToast('🤝 已送出申請並取得該組員臨時查看權限！','success')" style="margin-top:4px; border:none; background:#fff; color:#e74c3c; font-weight:bold; padding:2px 6px; border-radius:3px; cursor:pointer;">發出組隊邀請/申請</button></div>`
                         : '';
 
                     const popupHtml = `
                         <div style="font-family:sans-serif; color:#333; min-width:210px;">
                             <h4 style="color:#2c3e50; margin-bottom:5px;">👤 ${u.nickname} ${u.id === currentUser.id ? '(我)' : ''}</h4>
-                            <p style="font-size:11px; color:#7f8c8d; margin-bottom:6px;">距離：${dist.toFixed(0)} 公尺 | 類別: ${u.category || '未分類'}</p>
+                            <p style="font-size:11px; color:#7f8c8d; margin-bottom:6px;">距離：${dist.toFixed(0)} 公尺 | 類別: ${targetCategory}</p>
                             ${teamBannerHtml}
                             <hr style="border:0; border-top:1px solid #eee; margin-bottom:6px;">
                             <div style="font-size:11px; line-height:1.4;">
-                                <b>💪 擁有資源：</b>${u.has_what || '未填寫'}<br>
-                                <b>🤝 可幫到什麼：</b>${u.can_help || '未填寫'}<br>
-                                <b>📢 資源串聯曝光：</b>${u.can_expose || '未填寫'}<br>
-                                <b style="color:#e67e22;">🔍 即時需要：</b>${u.need_what || '未填寫'}
+                                <b>💪 1.擁有資源：</b>${u.has_what || '未填寫'}<br>
+                                <b>🤝 2.可幫到什麼：</b>${u.can_help || '未填寫'}<br>
+                                <b>📢 3.如何幫你曝光：</b>${u.can_expose || '未填寫'}<br>
+                                <b style="color:#e67e22;">🔍 4.我的即時需求：</b>${u.need_what || '未填寫'}
                             </div>
                         </div>
                     `;
@@ -467,6 +483,58 @@
                         mapElements.push(tm);
                     });
                 }
+            }
+        }
+
+        // ======= 💬 實時文字通訊聊天模組 =======
+        function openChat(friendUserId, friendNick) {
+            activeChatUserId = friendUserId;
+            document.getElementById('chatTitle').textContent = `💬 與 ${friendNick} 對話中 (保留20天)`;
+            document.getElementById('chatBoxPanel').classList.remove('hidden');
+            loadChatMessages();
+            if(chatInterval) clearInterval(chatInterval);
+            chatInterval = setInterval(loadChatMessages, 3500); // 每 3.5 秒自動對齊刷新訊息
+        }
+
+        function closeChat() {
+            document.getElementById('chatBoxPanel').classList.add('hidden');
+            activeChatUserId = null;
+            if(chatInterval) clearInterval(chatInterval);
+        }
+
+        async function loadChatMessages() {
+            if(!activeChatUserId || !currentUser) return;
+            const { data, error } = await window.dbClient.from('chat_messages')
+                .select('*')
+                .or(`and(sender_id.eq.${currentUser.id},receiver_id.eq.${activeChatUserId}),and(sender_id.eq.${activeChatUserId},receiver_id.eq.${currentUser.id})`)
+                .order('created_at', { ascending: true });
+
+            if(data) {
+                let html = '';
+                data.forEach(m => {
+                    const cls = m.sender_id === currentUser.id ? 'msg-me' : 'msg-other';
+                    html += `<div class="msg-line ${cls}">${m.message}</div>`;
+                });
+                const body = document.getElementById('chatMessagesBody');
+                body.innerHTML = html;
+                body.scrollTop = body.scrollHeight;
+            }
+        }
+
+        async function sendChatMessage() {
+            const input = document.getElementById('chatInput');
+            const msg = input.value.trim();
+            if(!msg || !activeChatUserId) return;
+
+            const { error } = await window.dbClient.from('chat_messages').insert({
+                sender_id: currentUser.id,
+                receiver_id: activeChatUserId,
+                message: msg
+            });
+
+            if(!error) {
+                input.value = '';
+                loadChatMessages();
             }
         }
 
@@ -497,14 +565,26 @@
             refreshRadarMarkers();
         }
 
-        // ======= 🧑‍🤝‍🧑 好友管理 =======
+        // ======= 🧑‍🤝‍🧑 好友管理與綁定列表 =======
         async function loadFriends() {
             const { data } = await window.dbClient.from('friendships').select('*');
             let html = '';
             if(data) {
-                data.forEach(f => {
-                    html += `<div class="list-row"><span>👤 <b>${f.friend_nickname || f.friend_email}</b></span><button class="btn-danger" onclick="deleteFriend('${f.id}')">×</button></div>`;
-                });
+                for(let f of data) {
+                    // 去撈取好友對應的真實 User ID 供聊天室通訊使用
+                    const { data: p } = await window.dbClient.from('profiles').select('id, nickname').eq('email', f.friend_email).single();
+                    const fId = p ? p.id : null;
+                    const fNick = p ? p.nickname : f.friend_nickname;
+
+                    html += `
+                        <div class="list-row">
+                            <span>👤 <b>${fNick}</b></span>
+                            <div style="display:flex; gap:6px;">
+                                <button class="btn" style="padding:4px 10px; background:var(--friend-color); color:#fff; font-size:0.75rem;" onclick="openChat('${fId}', '${fNick}')">💬 線上對話</button>
+                                <button class="btn-danger" onclick="deleteFriend('${f.id}')">×</button>
+                            </div>
+                        </div>`;
+                }
             }
             document.getElementById('friendList').innerHTML = html || '<div style="font-size:0.75rem; text-align:center; color:#555;">尚無好友綁定</div>';
         }
@@ -519,7 +599,7 @@
             document.getElementById('fEmail').value = '';
             loadFriends();
             refreshRadarMarkers();
-            showToast('✅ 成功綁定組員好友！', 'success');
+            showToast('✅ 成功綁定組員好友！已開通20天對話管道', 'success');
         }
 
         async function deleteFriend(id) {
@@ -528,7 +608,7 @@
             refreshRadarMarkers();
         }
 
-        // ======= 📊 歷史軌跡 =======
+        // ======= 📊 歷史軌跡與出沒聚落分析 =======
         async function queryHistoryLogs() {
             if(!historyMap) {
                 historyMap = L.map('historyMap', { attributionControl: false }).setView([25.0451, 121.4525], 13);
@@ -562,8 +642,8 @@
             historyMap.fitBounds(historyPolyline.getBounds());
 
             document.getElementById('statDistance').textContent = (totalDist / 1000).toFixed(2) + ' km';
-            document.getElementById('statTopPlace').textContent = '土城區 (核心聚落)';
-            showToast('✅ 歷史分析軌跡載入完成！', 'success');
+            document.getElementById('statTopPlace').textContent = '新北市土城區 (核心出沒地點)';
+            showToast('✅ 歷史分析軌跡與常出沒聚落載入完成！', 'success');
         }
 
         // ======= ⚙️ 初始化與登退邏輯 =======
@@ -576,7 +656,7 @@
             loadStaticTargets();
             loadFriends();
             setTimeout(() => { initRadarMap(25.0451, 121.4525); }, 300); 
-            setInterval(() => { if(tracking) refreshRadarMarkers(); }, 7000);
+            setInterval(() => { if(tracking) refreshRadarMarkers(); }, 7000); // 每 7 秒自動掃描周圍引力環境
         }
 
         window.onload = async function() {
