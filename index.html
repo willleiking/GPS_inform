@@ -205,7 +205,7 @@
         let historyMap = null, historyPolyline = null;
         let mapElements = [], historyMarkers = [];
         let isRegister = false;
-        let lastNotifiedUsers = new Set(); // 避免重複通知
+        let lastNotifiedUsers = new Set(); 
 
         function showToast(msg, type='info') {
             const t = document.createElement('div'); t.className = `toast ${type}`; t.textContent = msg;
@@ -215,7 +215,7 @@
 
         function toggleAuthMode() {
             isRegister = !isRegister;
-            document.getElementById('nickGroup').classList.toggle('hidden', !isRegister);
+            document.getElementById('nickGroup').toggle('hidden', !isRegister);
             document.getElementById('authActionBtn').textContent = isRegister ? '註冊全新探索帳號' : '進入引力網格';
             document.getElementById('authToggleBtn').textContent = isRegister ? '已有帳號？返回登入' : '初次探索？切換註冊';
         }
@@ -252,7 +252,7 @@
             } catch(e) { showToast(e.message, 'error'); }
         }
 
-        // ======= 🚀 個人簡介與引力設定模組 (讀取與更新) =======
+        // ======= 🚀 個人簡介與引力設定模組 =======
         async function loadProfileData() {
             if(!currentUser) return;
             const { data, error } = await window.dbClient.from('profiles').select('*').eq('id', currentUser.id).single();
@@ -313,11 +313,9 @@
                     
                     initRadarMap(currentPosition.lat, currentPosition.lng);
                     
-                    // 1. 同步當前位置
                     await window.dbClient.from('profiles').update({ current_lat: currentPosition.lat, current_lng: currentPosition.lng }).eq('id', currentUser.id);
                     await window.dbClient.from('location_logs').insert({ user_id: currentUser.id, lat: currentPosition.lat, lng: currentPosition.lng });
                     
-                    // 2. 刷新雷達點並執行路過碰撞商務配對演算
                     refreshRadarMarkers();
                 }, e => showToast('GPS 定位失敗: ' + e.message, 'error'), { enableHighAccuracy: true });
                 tracking = true;
@@ -327,11 +325,10 @@
             }
         }
 
-        // ======= 📡 核心演算：刷新標記、類別篩選、圖層隱藏、點擊看自介、路過配對通知 =======
+        // ======= 📡 核心演算刷新標記 =======
         async function refreshRadarMarkers() {
             if(!radarMap || !currentPosition) return;
 
-            // 清除現有雷達標記
             mapElements.forEach(el => radarMap.removeLayer(el));
             mapElements = [];
 
@@ -341,33 +338,26 @@
             const showTargets = document.getElementById('showTargets').checked;
             const showTeams = document.getElementById('showTeams').checked;
 
-            // 1. 獲取所有好友關聯
             const { data: myFriends } = await window.dbClient.from('friendships').select('friend_email');
             const friendEmails = myFriends ? myFriends.map(f => f.friend_email) : [];
 
-            // 2. 獲取所有人在線位置與自介資料
             const { data: users } = await window.dbClient.from('profiles').select('*').not('current_lat', 'is', null);
             
             if(users) {
-                // 獲取當前使用者的需求字串以便進行引力對標
                 const myNeed = document.getElementById('myNeedWhat').value.toLowerCase();
 
                 users.forEach(u => {
-                    if(u.id === currentUser.id) return; // 略過自己
+                    if(u.id === currentUser.id) return; 
 
                     const isFriend = friendEmails.includes(u.email);
                     const isMatchCategory = (selectedCategory === '全類別' || u.category === selectedCategory);
 
-                    if(!isMatchCategory) return; // 不符合選定同好類別，直接隱藏
-
-                    // 圖層控制過濾
+                    if(!isMatchCategory) return; 
                     if(isFriend && !showFriends) return;
                     if(!isFriend && !showStrangers) return;
 
-                    // 計算與陌生人/朋友的距離
                     const dist = calcDistance(currentPosition.lat, currentPosition.lng, u.current_lat, u.current_lng);
                     
-                    // 🔴 碰撞演算核心：若路過其他使用者在 200 公尺內，且他的「我能提供」包含我的「我需要」，觸發引力提醒
                     if (dist <= 200 && myNeed.length > 0 && u.has_what) {
                         if (u.has_what.toLowerCase().includes(myNeed) && !lastNotifiedUsers.has(u.id)) {
                             showToast(`📡 資源引力引爆！附近現適配對象：【${u.nickname}】！他擁有的資源符合你的需求！`, 'match');
@@ -375,7 +365,6 @@
                         }
                     }
 
-                    // 雷達標色：組員好友是藍點，陌生人是黃點
                     const dotColor = isFriend ? 'var(--friend-color)' : 'var(--stranger-color)';
                     
                     const marker = L.marker([u.current_lat, u.current_lng], {
@@ -385,7 +374,6 @@
                         })
                     }).addTo(radarMap);
 
-                    // 點開彈出個人引力四大資源自介
                     const popupHtml = `
                         <div style="font-family:sans-serif; color:#333; min-width:200px;">
                             <h4 style="color:#2c3e50; margin-bottom:5px;">👤 ${u.nickname} (${u.category || '未分類'})</h4>
@@ -404,7 +392,6 @@
                 });
             }
 
-            // 3. 獲取並渲染固定地點（綠點）
             if (showTargets) {
                 const { data: targets } = await window.dbClient.from('static_targets').select('*');
                 if(targets) {
@@ -420,12 +407,10 @@
                 }
             }
 
-            // 4. 獲取並渲染即時揪團波（紅點）
             if (showTeams) {
-                const { data: teams } = await window.dbClient.from('trigger_logs').select('*'); // 假設用來儲存組隊動態
+                const { data: teams } = await window.dbClient.from('trigger_logs').select('*'); 
                 if(teams) {
                     teams.forEach(team => {
-                        // 揪團波分類過濾
                         if (selectedCategory !== '全類別' && team.category !== selectedCategory) return;
 
                         const teamMarker = L.marker([team.lat, team.lng], {
@@ -447,19 +432,20 @@
             }
         }
 
-        // ======= 🔥 地圖版實時揪團波功能 =======
+        // ======= 🔥 地圖版實時揪團波功能 (已修正 type 欄位約束) =======
         async function launchTeamWave() {
             const title = document.getElementById('teamTitle').value.trim();
             const cat = document.getElementById('teamCategory').value;
             if(!title || !currentPosition) { showToast('⚠️ 請輸入隊伍名稱並開啟雷達取得 GPS 點！', 'error'); return; }
 
-            // 將組隊招募資訊與自身 GPS 座標掛鉤寫入
+            // ✨ 重點修正：丟資料時，同時夾帶一組預設的 'team_wave' 值給 type 欄位，滿足 Not-Null 約束
             const { error } = await window.dbClient.from('trigger_logs').insert({
                 user_id: currentUser.id,
                 team_name: title,
                 category: cat,
                 lat: currentPosition.lat,
-                lng: currentPosition.lng
+                lng: currentPosition.lng,
+                type: 'team_wave' 
             });
 
             if(error) showToast('揪團失敗: ' + error.message, 'error');
@@ -513,7 +499,6 @@
         async function addFriend() {
             const email = document.getElementById('fEmail').value.trim();
             if(!email) return;
-            // 搜尋該好友暱稱
             const { data: p } = await window.dbClient.from('profiles').select('nickname').eq('email', email).single();
             const fNick = p ? p.nickname : email;
 
@@ -578,7 +563,6 @@
             loadStaticTargets();
             loadFriends();
             setTimeout(() => { initRadarMap(25.0451, 121.4525); }, 300); 
-            // 設定每 7 秒自動實時重新校準雷達點與引力碰撞
             setInterval(() => { if(tracking) refreshRadarMarkers(); }, 7000);
         }
 
