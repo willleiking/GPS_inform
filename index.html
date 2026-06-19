@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover, maximum-scale=1.0">
-    <title>🟢 TribeRadar 同好聚落雷達 - 完整軌跡商務版</title>
+    <title>🟢 TribeRadar 同好聚落雷達 - 穩定修正版</title>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -50,7 +50,7 @@
 
         select, input, textarea { background: var(--surface2); border: 1px solid rgba(255,255,255,0.1); border-radius: var(--radius-sm); padding: 10px; color: #fff; outline: none; font-family: inherit; font-size: 0.85rem; width: 100%; }
 
-        /* 🟢 TribeRadar 圓盤掃描 */
+        /* 🟢 Radar 盤面面 */
         .radar-panel { display: flex; flex-direction: column; align-items: center; background: #070a0e; padding: 10px; }
         .radar-outer {
             position: relative; border: 4px solid var(--accent); border-radius: 50%; width: 100%; padding-bottom: 100%;
@@ -114,7 +114,7 @@
         </div>
 
         <div class="card">
-            <div class="card-title">🧑‍🤝‍🧑 好友偵測邊界 (可自訂雷達範圍)</div>
+            <div class="card-title">🧑‍🤝‍🧑 好友偵測邊界</div>
             <div id="friendList" style="display:flex; flex-direction:column; gap:6px;"></div>
             <div style="display:grid; grid-template-columns: 1fr auto; gap:6px; margin-top:4px;">
                 <input type="text" id="fNick" placeholder="好友暱稱">
@@ -179,18 +179,17 @@
                 暫無歷史查詢數據
             </div>
         </div>
-
-        <div class="card">
-            <div class="card-title">⚙️ 郵件設定 ▼</div>
-        </div>
-
     </div>
 
     <script>
-        // ======= 🚀 核心 Supabase 金鑰宣告 (全網頁僅此一次，絕不重複) =======
-        const SUPABASE_URL = 'https://hknxdvefnuxgyepuuqra.supabase.co';
-        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhrbnhkdmVmbnV4Z3llcHV1cXJhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1MzM0MDAsImV4cCI6MjA5NzEwOTQwMH0.M97OwM_9CrLCrgxbyA6kQs0MLFiRDzyYlvIiGqhBGec';
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        // ======= 🛡️ 防禦性全域變數宣告區（避免任何重複 Identifier 衝突） =======
+        window.SUPABASE_URL = 'https://hknxdvefnuxgyepuuqra.supabase.co';
+        window.SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhrbnhkdmVmbnV4Z3llcHV1cXJhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1MzM0MDAsImV4cCI6MjA5NzEwOTQwMH0.M97OwM_9CrLCrgxbyA6kQs0MLFiRDzyYlvIiGqhBGec';
+        
+        // 核心檢查：如果 window.dbClient 還不存在，就初始化它。後面全部用 dbClient 代替，繞開常規常數宣告。
+        if (!window.dbClient) {
+            window.dbClient = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_KEY);
+        }
 
         let currentUser = null, tracking = false, watchId = null, currentPosition = null;
         let radarMap = null, myMarker = null, radarCircle = null;
@@ -226,15 +225,15 @@
             try {
                 if(isRegister) {
                     const nick = document.getElementById('authNickname').value.trim() || '未命名同好';
-                    const { data, error } = await supabase.auth.signUp({ email, password, options: { data: { nickname: nick } } });
+                    const { data, error } = await window.dbClient.auth.signUp({ email, password, options: { data: { nickname: nick } } });
                     if(error) throw error;
                     if(data.user) {
-                        await supabase.from('profiles').insert({ id: data.user.id, email, nickname: nick });
+                        await window.dbClient.from('profiles').insert({ id: data.user.id, email, nickname: nick });
                     }
                     showToast('🎉 帳號建立成功！請登入。', 'success');
                     toggleAuthMode();
                 } else {
-                    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+                    const { data, error } = await window.dbClient.auth.signInWithPassword({ email, password });
                     if(error) throw error;
                     currentUser = data.user;
                     enterMainApp();
@@ -271,7 +270,7 @@
             radarLayers = [];
 
             // 1. 讀取好友邊界
-            const { data: friends } = await supabase.from('friendships').select('*');
+            const { data: friends } = await window.dbClient.from('friendships').select('*');
             let fHtml = '';
             if(friends) {
                 friends.forEach(f => {
@@ -281,7 +280,7 @@
             document.getElementById('friendList').innerHTML = fHtml || '<div style="font-size:0.75rem; color:#666; text-align:center;">尚無好友設定</div>';
 
             // 2. 讀取定點目標
-            const { data: targets } = await supabase.from('static_targets').select('*');
+            const { data: targets } = await window.dbClient.from('static_targets').select('*');
             let tHtml = '';
             if(targets) {
                 targets.forEach(t => {
@@ -295,7 +294,7 @@
             document.getElementById('targetList').innerHTML = tHtml || '<div style="font-size:0.75rem; color:#666; text-align:center;">尚無定點設定</div>';
 
             // 3. 讀取期間限定活動
-            const { data: evs } = await supabase.from('events').select('*');
+            const { data: evs } = await window.dbClient.from('events').select('*');
             let eHtml = '';
             if(evs) {
                 evs.forEach(e => {
@@ -312,7 +311,7 @@
         async function addFriend() {
             const nick = document.getElementById('fNick').value.trim();
             if(!nick) return;
-            await supabase.from('friendships').insert({ user_id: currentUser.id, friend_nickname: nick, alert_radius: 500 });
+            await window.dbClient.from('friendships').insert({ user_id: currentUser.id, friend_nickname: nick, alert_radius: 500 });
             document.getElementById('fNick').value = '';
             refreshDashboardData();
         }
@@ -320,7 +319,7 @@
         async function addStaticTarget() {
             const name = document.getElementById('tName').value.trim();
             if(!name || !currentPosition) { showToast('⚠️ 請輸入名稱或開啟雷達取得定位', 'error'); return; }
-            await supabase.from('static_targets').insert({ user_id: currentUser.id, name, lat: currentPosition.lat, lng: currentPosition.lng });
+            await window.dbClient.from('static_targets').insert({ user_id: currentUser.id, name, lat: currentPosition.lat, lng: currentPosition.lng });
             document.getElementById('tName').value = '';
             refreshDashboardData();
         }
@@ -328,13 +327,13 @@
         async function addEvent() {
             const title = document.getElementById('evTitle').value.trim();
             if(!title || !currentPosition) { showToast('⚠️ 請輸入活動名稱並定位', 'error'); return; }
-            await supabase.from('events').insert({ user_id: currentUser.id, title, lat: currentPosition.lat, lng: currentPosition.lng });
+            await window.dbClient.from('events').insert({ user_id: currentUser.id, title, lat: currentPosition.lat, lng: currentPosition.lng });
             document.getElementById('evTitle').value = '';
             refreshDashboardData();
         }
 
         async function deleteItem(table, id) {
-            await supabase.from(table).delete().eq('id', id);
+            await window.dbClient.from(table).delete().eq('id', id);
             refreshDashboardData();
         }
 
@@ -355,8 +354,8 @@
                     initRadarMap(currentPosition.lat, currentPosition.lng);
                     
                     // 同步到資料庫
-                    await supabase.from('profiles').update({ current_lat: currentPosition.lat, current_lng: currentPosition.lng }).eq('id', currentUser.id);
-                    await supabase.from('location_logs').insert({ user_id: currentUser.id, lat: currentPosition.lat, lng: currentPosition.lng });
+                    await window.dbClient.from('profiles').update({ current_lat: currentPosition.lat, current_lng: currentPosition.lng }).eq('id', currentUser.id);
+                    await window.dbClient.from('location_logs').insert({ user_id: currentUser.id, lat: currentPosition.lat, lng: currentPosition.lng });
                     
                     refreshDashboardData();
                 }, e => showToast('GPS 定位失敗: ' + e.message, 'error'), { enableHighAccuracy: true });
@@ -370,7 +369,6 @@
         async function queryHistoryLogs() {
             if(!historyMap) initHistoryMap();
             
-            // 清空舊軌跡
             historyMarkers.forEach(m => historyMap.removeLayer(m));
             historyMarkers = [];
             if(historyPolyline) { historyMap.removeLayer(historyPolyline); historyPolyline = null; }
@@ -378,7 +376,7 @@
             const start = document.getElementById('dateStart').value + 'T00:00:00Z';
             const end = document.getElementById('dateEnd').value + 'T23:59:59Z';
 
-            const { data: logs, error } = await supabase.from('location_logs')
+            const { data: logs, error } = await window.dbClient.from('location_logs')
                 .select('*')
                 .eq('user_id', currentUser.id)
                 .gte('created_at', start)
@@ -398,16 +396,13 @@
                 if(i > 0) {
                     totalDist += calcDistance(logs[i-1].lat, logs[i-1].lng, log.lat, log.lng);
                 }
-                // 在歷史地圖打點
                 const m = L.circleMarker([log.lat, log.lng], { radius: 5, color: 'var(--accent)' }).addTo(historyMap);
                 historyMarkers.push(m);
             });
 
-            // 畫線
             historyPolyline = L.polyline(latlngs, { color: 'var(--accent)', weight: 3 }).addTo(historyMap);
             historyMap.fitBounds(historyPolyline.getBounds());
 
-            // 數據計算更新
             document.getElementById('statDistance').textContent = (totalDist / 1000).toFixed(2) + ' km';
             document.getElementById('statDuration').textContent = '1.5 小時';
             document.getElementById('statCount').textContent = logs.length + ' 次';
@@ -419,7 +414,7 @@
             showToast('✅ 歷史軌跡載入成功！', 'success');
         }
 
-        async function handleLogout() { if(tracking) toggleTracking(); await supabase.auth.signOut(); location.reload(); }
+        async function handleLogout() { if(tracking) toggleTracking(); await window.dbClient.auth.signOut(); location.reload(); }
         
         function enterMainApp() { 
             document.getElementById('authPage').classList.add('hidden'); 
@@ -427,7 +422,6 @@
             document.getElementById('sweeperEl').style.animationPlayState = 'paused';
             
             refreshDashboardData();
-            // 預設給個台北核心中心點初始化
             setTimeout(() => {
                 initRadarMap(25.0451, 121.4525);
                 initHistoryMap();
@@ -436,12 +430,13 @@
 
         window.onload = async function() {
             try {
-                const { data } = await supabase.auth.getSession();
+                // 確保狀態正常切換
+                const { data } = await window.dbClient.auth.getSession();
                 if(data?.session?.user) { 
                     currentUser = data.session.user; 
                     enterMainApp(); 
                 } else {
-                    document.getElementById('connStatus').textContent = '🟢 連線主機就緒';
+                    document.getElementById('connStatus').textContent = '🟢 連線成功，請輸入帳密';
                 }
             } catch(e) { document.getElementById('connStatus').textContent = '🔴 主機連線異常'; }
         };
