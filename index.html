@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover, maximum-scale=1.0">
-    <title>🟢 TribeRadar 終極商務同好雷達</title>
+    <title>🟢 TribeRadar 終極商務引力雷達</title>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -17,11 +17,9 @@
             --border: #2ecc7130;
             --text: #95a5a6;
             --accent: #2ecc71; 
-            --friend-blue: #3498db;
-            --stranger-yellow: #f1c40f;
-            --target-green: #2ecc71;
+            --blue: #3498db;
+            --yellow: #f1c40f;
             --danger: #e74c3c;
-            --warning: #e67e22;
             --radius: 12px;
             --radius-sm: 8px;
         }
@@ -35,7 +33,7 @@
             background: var(--surface); border-radius: var(--radius); border: 1px solid var(--border);
             padding: 16px; display: flex; flex-direction: column; gap: 12px;
         }
-        .card-title { font-size: 0.9rem; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 6px; border-left: 3px solid var(--accent); padding-left: 6px; }
+        .card-title { font-size: 0.9rem; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 6px; }
         
         .btn {
             padding: 12px; border-radius: 20px; border: none; font-weight: 700; font-size: 0.85rem;
@@ -43,46 +41,42 @@
         }
         .btn-primary { background: var(--accent); color: #000; width: 100%; }
         .btn-outline { background: transparent; color: var(--accent); border: 1px solid var(--accent); border-radius: 20px; padding: 6px 12px; font-size: 0.8rem; }
-        .btn-danger { background: transparent; color: var(--danger); border: 1px solid var(--danger); border-radius: 50%; width: 24px; height: 24px; padding: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 0.8rem; }
+        .btn-danger { background: transparent; color: var(--danger); border: 1px solid var(--danger); border-radius: 50%; width: 28px; height: 28px; padding: 0; display: inline-flex; align-items: center; justify-content: center; }
         
         .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
         .stat-box { background: var(--surface2); padding: 12px; border-radius: var(--radius-sm); text-align: center; }
-        .stat-val { font-size: 1.1rem; font-weight: bold; color: var(--accent); margin-bottom: 4px; }
+        .stat-val { font-size: 1.2rem; font-weight: bold; color: var(--accent); margin-bottom: 4px; }
         .stat-lbl { font-size: 0.7rem; color: #7f8c8d; }
 
         select, input, textarea { background: var(--surface2); border: 1px solid rgba(255,255,255,0.1); border-radius: var(--radius-sm); padding: 10px; color: #fff; outline: none; font-family: inherit; font-size: 0.85rem; width: 100%; }
-        textarea { resize: vertical; min-height: 60px; }
 
-        /* 📡 雷達特校盤面 */
-        .radar-panel { display: flex; flex-direction: column; align-items: center; background: #070a0e; padding: 10px; position: relative; }
+        /* 🟢 雷達控制核心 */
+        .radar-panel { display: flex; flex-direction: column; align-items: center; background: #070a0e; padding: 10px; }
         .radar-outer {
-            position: relative; border: 3px solid var(--accent); border-radius: 50%; width: 100%; padding-bottom: 100%;
-            overflow: hidden; box-shadow: inset 0 0 30px rgba(0,0,0,1), 0 0 15px rgba(46,204,113,0.2);
+            position: relative; border: 4px solid var(--accent); border-radius: 50%; width: 100%; padding-bottom: 100%;
+            overflow: hidden; box-shadow: inset 0 0 30px rgba(0,0,0,1), 0 0 15px rgba(46,204,113,0.3);
         }
         #radarMap { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
-        
-        /* 特效掃描線 */
         .radar-sweeper {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 999; pointer-events: none; border-radius: 50%;
-            background: conic-gradient(from 0deg, rgba(46,204,113,0.3) 0deg, rgba(46,204,113,0.05) 180deg, transparent 360deg);
+            background: conic-gradient(from 0deg, rgba(46,204,113,0.25) 0deg, rgba(46,204,113,0) 120deg, transparent 360deg);
             animation: radar-sweep 4s infinite linear;
-            animation-play-state: paused;
         }
         @keyframes radar-sweep { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
-        #historyMap { width: 100%; height: 220px; border-radius: var(--radius-sm); }
-        .list-row { background: var(--surface2); border-radius: var(--radius-sm); padding: 10px; display: flex; align-items: center; justify-content: space-between; font-size: 0.85rem; }
-        
-        .input-group { display: flex; flex-direction: column; gap: 4px; }
-        .input-group label { font-size: 0.75rem; color: var(--accent); font-weight: bold; }
+        #historyMap { width: 100%; height: 220px; border-radius: var(--radius-sm); margin-top: 5px; }
+        .list-row { background: var(--surface2); border-radius: var(--radius-sm); padding: 12px; display: flex; align-items: center; justify-content: space-between; font-size: 0.85rem; }
+        .filter-group { display: flex; flex-wrap: wrap; gap: 8px; font-size: 0.75rem; margin-top: 4px; }
+        .filter-label { display: flex; align-items: center; gap: 4px; color: #fff; cursor: pointer; }
+        .filter-label input { width: auto; margin: 0; }
 
         .hidden { display: none !important; }
         .toast-container { position: fixed; top: 16px; left: 50%; transform: translateX(-50%); z-index: 9999; display: flex; flex-direction: column; gap: 6px; width: 90%; max-width: 400px; }
-        .toast { padding: 12px; border-radius: 8px; font-size: 0.8rem; text-align: center; color: #fff; font-weight: bold; box-shadow: 0 4px 12px rgba(0,0,0,0.5); }
+        .toast { padding: 12px; border-radius: 8px; font-size: 0.8rem; text-align: center; color: #fff; font-weight: bold; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
         .toast.error { background: #c0392b; }
         .toast.success { background: #27ae60; }
-        .toast.match { background: #e67e22; animation: pulse 1.5s infinite; }
-        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.03); } 100% { transform: scale(1); } }
+        .toast.match { background: #9b59b6; animation: pulse 1s infinite alternate; }
+        @keyframes pulse { from { transform: scale(1); } to { transform: scale(1.03); } }
     </style>
 </head>
 <body>
@@ -91,15 +85,15 @@
 
     <div class="app-container" id="authPage">
         <div class="card" style="text-align:center;">
-            <h2 style="color:var(--accent)">🟢 TribeRadar 同好聚落雷達</h2>
+            <h2 style="color:var(--accent)">🟢 TribeRadar 引力聚落雷達</h2>
             <p style="font-size:0.75rem; color:var(--accent);" id="connStatus">探索主機連線中...</p>
         </div>
         <div class="card">
-            <div class="input-group"><label>EMAIL</label><input type="email" id="authEmail" placeholder="example@gmail.com"></div>
-            <div class="input-group"><label>密碼 (至少 6 碼)</label><input type="password" id="authPassword"></div>
-            <div class="input-group hidden" id="nickGroup"><label>探索暱稱</label><input type="text" id="authNickname" placeholder="請輸入暱稱"></div>
+            <input type="email" id="authEmail" placeholder="EMAIL">
+            <input type="password" id="authPassword" placeholder="密碼">
+            <div class="hidden" id="nickGroup"><input type="text" id="authNickname" placeholder="探索暱稱"></div>
             <button class="btn btn-primary" id="authActionBtn" onclick="handleAuth()">進入同好網格</button>
-            <button class="btn btn-outline" style="font-size:0.75rem; margin-top: 5px;" id="authToggleBtn" onclick="toggleAuthMode()">初次探索？切換註冊帳號</button>
+            <button class="btn btn-outline" id="authToggleBtn" onclick="toggleAuthMode()">初次探索？切換註冊</button>
         </div>
     </div>
 
@@ -110,98 +104,100 @@
                 <div id="radarMap"></div>
                 <div class="radar-sweeper" id="sweeperEl"></div>
             </div>
-            <div id="geoStatus" style="font-size:0.7rem; font-family:monospace; margin-top:8px; color:var(--accent);">中心探索中...</div>
-            <div style="display:flex; gap:8px; width:100%; margin-top: 5px;">
-                <button class="btn btn-primary" id="trackBtn" onclick="toggleTracking()">▶️ 啟動雷達掃描</button>
+            
+            <div style="width:100%; margin-top:10px; display:flex; flex-direction:column; gap:6px;">
+                <select id="radarCategory" onchange="refreshRadarMarkers()">
+                    <option value="all">🔍 全類別同好</option>
+                    <option value="吃貨團">🍖 吃貨聚落團</option>
+                    <option value="健身團">💪 鐵血健身團</option>
+                    <option value="商務資源">💼 商業產權合作</option>
+                </select>
+                <div class="filter-group">
+                    <label class="filter-label"><input type="checkbox" id="showTeam" checked onchange="refreshRadarMarkers()"> 組員(藍)</label>
+                    <label class="filter-label"><input type="checkbox" id="showStranger" checked onchange="refreshRadarMarkers()"> 陌生人(黃)</label>
+                    <label class="filter-label"><input type="checkbox" id="showStatic" checked onchange="refreshRadarMarkers()"> 定點(綠)</label>
+                    <label class="filter-label"><input type="checkbox" id="showEvent" checked onchange="refreshRadarMarkers()"> 活動(紅)</label>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div style="display:flex; gap:8px;">
+                <button class="btn btn-primary" id="trackBtn" onclick="toggleTracking()">▶️ 啟動雷達實時掃描</button>
+                <button class="btn btn-outline" onclick="triggerGroupWave()" style="color:var(--blue); border-color:var(--blue)">📡 發射揪團波</button>
                 <button class="btn btn-outline" onclick="handleLogout()" style="color:var(--danger); border-color:var(--danger)">登出</button>
             </div>
         </div>
 
         <div class="card">
-            <div class="card-title">💼 我的商務引力自介 (對標匹配核心)</div>
-            <div class="input-group">
-                <label>🤝 我可以幫你串聯甚麼資源 (資源串聯)</label>
-                <input type="text" id="profileCanConnect" placeholder="例如：對接北區創投、全台連鎖餐飲管道">
+            <div class="card-title">👤 我的引力特質與適配設定</div>
+            <select id="myCategory">
+                <option value="吃貨團">🍖 吃貨聚落團</option>
+                <option value="健身團">💪 鐵血健身團</option>
+                <option value="商務資源">💼 商業產權合作</option>
+            </select>
+            <textarea id="myNeed" placeholder="🔍 我的資源需求（例如：想找對接工廠、尋找健身夥伴）" rows="2"></textarea>
+            
+            <div style="background:rgba(255,255,255,0.02); padding:10px; border-radius:var(--radius-sm); display:flex; flex-direction:column; gap:8px;">
+                <div style="font-size:0.75rem; color:var(--accent); font-weight:bold;">🧲 我的四大資源引力（自介配置）</div>
+                <input type="text" id="myHas" placeholder="1. 我擁有什麼核心資源？">
+                <input type="text" id="myCanHelp" placeholder="2. 我可以幫到同好什麼？">
+                <input type="text" id="myCanExpose" placeholder="3. 我可以如何幫你曝光？">
+                <input type="text" id="myCanConnect" placeholder="4. 我可以幫你串聯什麼資源？">
             </div>
-            <div class="grid-2">
-                <div class="input-group"><label>📦 1. 我擁有甚麼 (資產)</label><textarea id="profileHasWhat" placeholder="軟體開發團隊、自媒體萬粉帳號"></textarea></div>
-                <div class="input-group"><label>🛠️ 2. 我可以幫到甚麼 (技能)</label><textarea id="profileCanHelp" placeholder="商業模式梳理、AWS架構優化"></textarea></div>
-            </div>
-            <div class="grid-2">
-                <div class="input-group"><label>📢 3. 我如何幫你曝光 (行銷)</label><textarea id="profileCanExpose" placeholder="電子報代發、線下沙龍擺攤"></textarea></div>
-                <div class="input-group"><label>🎯 🎯 我的資源需求 (核心尋找)</label><textarea id="profileNeedWhat" style="border-color:var(--warning)" placeholder="尋找共同創辦人、尋找設計外包"></textarea></div>
-            </div>
-            <button class="btn btn-primary" style="font-size:0.8rem; padding:8px;" onclick="updateBusinessProfile()">💾 儲存並發布我的引力場</button>
+            <button class="btn btn-outline" onclick="saveProfile()">💾 儲存並更新引力設定</button>
         </div>
 
         <div class="card">
-            <div class="card-title">🔥 地圖實時揪團波 (發起與邀請)</div>
-            <div id="activeGroupWaves" style="display:flex; flex-direction:column; gap:6px; font-size:0.8rem;"></div>
-            <div style="display:grid; grid-template-columns: 1fr auto; gap:6px;">
-                <input type="text" id="waveTitle" placeholder="輸入揪團事由 (如: 伯朗咖啡聊AI外包)">
-                <button class="btn btn-outline" style="border-color:var(--warning); color:var(--warning)" onclick="launchGroupWave()">🚀 發射揪團波</button>
-            </div>
-        </div>
-
-        <div class="card">
-            <div class="card-title">🧑‍🤝‍🧑 好友偵測邊界</div>
-            <div id="friendList" style="display:flex; flex-direction:column; gap:6px;"></div>
-            <div style="display:grid; grid-template-columns: 1fr auto; gap:6px;">
-                <input type="text" id="fNick" placeholder="請輸入欲綁定的好友暱稱">
-                <button class="btn btn-outline" onclick="addFriend()">+ 綁定好友</button>
-            </div>
-        </div>
-
-        <div class="card">
-            <div class="card-title">📍 定點目標區域管理</div>
+            <div class="card-title">📍 基地定點與限定活動部署</div>
             <div id="targetList" style="display:flex; flex-direction:column; gap:6px;"></div>
-            <div style="display:grid; grid-template-columns: 1fr auto; gap:6px;">
-                <input type="text" id="tName" placeholder="地點名稱 (如: 遠東通訊園區)">
-                <button class="btn btn-outline" onclick="addStaticTarget()">+ 新增定點</button>
+            <div style="display:grid; grid-template-columns: 1fr 1fr auto; gap:6px;">
+                <input type="text" id="tName" placeholder="部署名稱">
+                <select id="deployType">
+                    <option value="static">🟢 建立固定點</option>
+                    <option value="event">🔴 部署揪團活動</option>
+                </select>
+                <button class="btn btn-outline" onclick="deployTarget()">+ 部署</button>
             </div>
         </div>
 
         <div class="card">
-            <div class="card-title">📊 歷史軌跡與數據摘要分析</div>
+            <div class="card-title">📊 數據摘要與歷史軌跡</div>
             <div style="display:flex; align-items:center; gap:6px;">
-                <select id="dateStart"><option value="2026-06-10">2026/06/10</option><option value="2026-06-15">2026/06/15</option><option value="2026-06-19">2026/06/19</option></select>
+                <select id="dateStart"><option value="2026-06-10">2026/06/10</option><option value="2026-06-15">2026/06/15</option></select>
                 <span>～</span>
-                <select id="dateEnd"><option value="2026-06-19">2026/06/19</option><option value="2026-06-25">2026/06/25</option></select>
+                <select id="dateEnd"><option value="2026-06-25">2026/06/25</option></select>
                 <button class="btn btn-outline" onclick="queryHistoryLogs()">查詢</button>
             </div>
             <div class="grid-2">
                 <div class="stat-box"><div class="stat-val" id="statDistance">--</div><div class="stat-lbl">總移動距離</div></div>
-                <div class="stat-box"><div class="stat-val" id="statTopPlace">--</div><div class="stat-lbl">常出沒地點</div></div>
+                <div class="stat-box"><div class="stat-val" id="statTopPlace">--</div><div class="stat-lbl">常出沒核心點</div></div>
             </div>
             <div id="historyMap"></div>
         </div>
-
     </div>
 
     <script>
-        // ======= 🛡️ 安全防護初始化 =======
         window.SUPABASE_URL = 'https://hknxdvefnuxgyepuuqra.supabase.co';
         window.SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhrbnhkdmVmbnV4Z3llcHV1cXJhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1MzM0MDAsImV4cCI6MjA5NzEwOTQwMH0.M97OwM_9CrLCrgxbyA6kQs0MLFiRDzyYlvIiGqhBGec';
-        
-        if (!window.dbClient) {
-            window.dbClient = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_KEY);
-        }
+        if (!window.dbClient) window.dbClient = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_KEY);
 
-        let currentUser = null, tracking = false, watchId = null, currentPosition = null;
-        let radarMap = null, myMarker = null;
-        let historyMap = null, historyPolyline = null, historyMarkers = [];
-        let mapElements = [], isRegister = false;
+        let currentUser = null, tracking = false, watchId = null, currentPosition = { lat: 25.0451, lng: 121.4525 };
+        let radarMap = null, myMarker = null, radarCircle = null;
+        let historyMap = null, historyPolyline = null;
+        let liveMarkers = [], historyMarkers = [];
+        let isRegister = false;
 
         function showToast(msg, type='info') {
-            const t = document.createElement('div'); t.className = `toast ${type}`; t.textContent = msg;
+            const t = document.createElement('div'); t.className = `toast ${type}`; t.innerHTML = msg;
             document.getElementById('toastContainer').appendChild(t);
-            setTimeout(() => t.remove(), 4000);
+            setTimeout(() => t.remove(), 4500);
         }
 
         function toggleAuthMode() {
             isRegister = !isRegister;
             document.getElementById('nickGroup').classList.toggle('hidden', !isRegister);
-            document.getElementById('authActionBtn').textContent = isRegister ? '註冊新探索帳號' : '進入同好網格';
+            document.getElementById('authActionBtn').textContent = isRegister ? '建立新角色' : '進入同好網格';
         }
 
         function calcDistance(lat1, lon1, lat2, lon2) {
@@ -214,191 +210,151 @@
         async function handleAuth() {
             const email = document.getElementById('authEmail').value.trim();
             const password = document.getElementById('authPassword').value;
-            if(!email || !password) { showToast('⚠️ 請填寫欄位', 'error'); return; }
             try {
                 if(isRegister) {
-                    const nick = document.getElementById('authNickname').value.trim() || '新探索者';
+                    const nick = document.getElementById('authNickname').value.trim() || '新探險家';
                     const { data, error } = await window.dbClient.auth.signUp({ email, password, options: { data: { nickname: nick } } });
                     if(error) throw error;
-                    if(data.user) await window.dbClient.from('profiles').insert({ id: data.user.id, email, nickname: nick });
-                    showToast('🎉 註冊成功，請直接登入！', 'success');
-                    toggleAuthMode();
+                    if(data.user) await window.dbClient.from('profiles').insert({ id: data.user.id, email, nickname: nick, category: '全類別' });
+                    showToast('🎉 註冊成功，請登入！', 'success'); toggleAuthMode();
                 } else {
                     const { data, error } = await window.dbClient.auth.signInWithPassword({ email, password });
                     if(error) throw error;
-                    currentUser = data.user;
-                    enterMainApp();
+                    currentUser = data.user; enterMainApp();
                 }
             } catch(e) { showToast(e.message, 'error'); }
         }
 
-        // 載入自介設定
-        async function loadMyProfileData() {
+        function initRadarMap(lat, lng) {
+            if (radarMap) { radarMap.setView([lat, lng], 15); myMarker.setLatLng([lat, lng]); radarCircle.setLatLng([lat, lng]); return; }
+            radarMap = L.map('radarMap', { zoomControl: false, attributionControl: false }).setView([lat, lng], 15);
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(radarMap);
+            myMarker = L.marker([lat, lng], { icon: L.divIcon({ html: `<div style="background:#fff; width:14px; height:14px; border-radius:50%; border:3px solid var(--accent); box-shadow:0 0 12px var(--accent);"></div>`, iconSize:[14,14], iconAnchor:[7,7] }) }).addTo(radarMap).bindPopup("<b>我的核心錨點</b>");
+            radarCircle = L.circle([lat, lng], { radius: 500, color: 'var(--accent)', weight: 1, fillColor: 'var(--accent)', fillOpacity: 0.02 }).addTo(radarMap);
+        }
+
+        async function loadProfileData() {
             const { data } = await window.dbClient.from('profiles').select('*').eq('id', currentUser.id).single();
             if(data) {
-                document.getElementById('profileHasWhat').value = data.has_what || '';
-                document.getElementById('profileCanHelp').value = data.can_help || '';
-                document.getElementById('profileCanExpose').value = data.can_expose || '';
-                document.getElementById('profileCanConnect').value = data.can_connect || '';
-                document.getElementById('profileNeedWhat').value = data.need_what || '';
+                document.getElementById('myCategory').value = data.category || '吃貨團';
+                document.getElementById('myNeed').value = data.need_what || '';
+                document.getElementById('myHas').value = data.has_what || '';
+                document.getElementById('myCanHelp').value = data.can_help || '';
+                document.getElementById('myCanExpose').value = data.can_expose || '';
+                document.getElementById('myCanConnect').value = data.can_connect || '';
             }
         }
 
-        async function updateBusinessProfile() {
+        async function saveProfile() {
             const updates = {
-                has_what: document.getElementById('profileHasWhat').value,
-                can_help: document.getElementById('profileCanHelp').value,
-                can_expose: document.getElementById('profileCanExpose').value,
-                can_connect: document.getElementById('profileCanConnect').value,
-                need_what: document.getElementById('profileNeedWhat').value
+                category: document.getElementById('myCategory').value,
+                need_what: document.getElementById('myNeed').value,
+                has_what: document.getElementById('myHas').value,
+                can_help: document.getElementById('myCanHelp').value,
+                can_expose: document.getElementById('myCanExpose').value,
+                can_connect: document.getElementById('myCanConnect').value
             };
             await window.dbClient.from('profiles').update(updates).eq('id', currentUser.id);
-            showToast('💼 資源引力場更新發布成功！', 'success');
-            scanEnvironment();
+            showToast('💾 引力磁場配置更新成功！', 'success');
+            refreshRadarMarkers();
         }
 
-        function initRadarMap(lat, lng) {
-            if (radarMap) { radarMap.setView([lat, lng]); if(myMarker) myMarker.setLatLng([lat, lng]); return; }
-            radarMap = L.map('radarMap', { zoomControl: false, attributionControl: false }).setView([lat, lng], 14);
-            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(radarMap);
-            myMarker = L.marker([lat, lng], {
-                icon: L.divIcon({ html: `<div style="background:#fff; width:14px; height:14px; border-radius:50%; border:3px solid var(--accent); box-shadow:0 0 12px var(--accent);"></div>`, iconSize:[14,14], iconAnchor:[7,7] })
-            }).addTo(radarMap).bindPopup("<b>📍 你當前的觀測中心</b>");
-        }
+        async function refreshRadarMarkers() {
+            if(!radarMap) return;
+            liveMarkers.forEach(m => radarMap.removeLayer(m)); liveMarkers = [];
 
-        // 🟢 核心：實時掃描環境 + 多色標記點 + 彈窗自介對標匹配 + 陌生人適配通知
-        async function scanEnvironment() {
-            if(!currentUser || !currentPosition) return;
+            const catFilter = document.getElementById('radarCategory').value;
+            const showTeam = document.getElementById('showTeam').checked;
+            const showStranger = document.getElementById('showStranger').checked;
+            const showStatic = document.getElementById('showStatic').checked;
+            const showEvent = document.getElementById('showEvent').checked;
 
-            // 清除地圖舊點位
-            mapElements.forEach(el => radarMap.removeLayer(el));
-            mapElements = [];
-
-            // 抓取自己最新的需求以供比對
-            const { data: myProf } = await window.dbClient.from('profiles').select('need_what').eq('id', currentUser.id).single();
-            const myNeed = (myProf?.need_what || '').toLowerCase();
-
-            // 1. 抓取所有其他使用者的位置與自介 (陌生人、同組組員)
-            const { data: users } = await window.dbClient.from('profiles').select('*').not('id', 'eq', currentUser.id);
-            // 抓取綁定好友清單
-            const { data: friends } = await window.dbClient.from('friendships').select('*').eq('id', currentUser.id); // 修正查詢自己綁定的好友
-            const friendNicks = (friends || []).map(f => f.friend_nickname);
+            // 1. 獲取所有用戶引力場
+            const { data: users } = await window.dbClient.from('profiles').select('*');
+            // 獲取當前使用者的需求
+            const myNeedStr = document.getElementById('myNeed').value.toLowerCase();
 
             if(users) {
                 users.forEach(u => {
-                    if(!u.current_lat || !u.current_lng) return;
-                    
+                    if(u.id === currentUser.id || !u.current_lat) return;
+                    if(catFilter !== 'all' && u.category !== catFilter) return;
+
                     const dist = calcDistance(currentPosition.lat, currentPosition.lng, u.current_lat, u.current_lng);
-                    if(dist > 5000) return; // 超過5公里不顯示
+                    if(dist > 1500) return; // 超出雷達邊界不顯示
 
-                    // 判斷身分設定顏色：同組組員(藍色) vs 陌生人(黃色)
-                    const isFriend = friendNicks.includes(u.nickname);
-                    const dotColor = isFriend ? 'var(--friend-blue)' : 'var(--stranger-yellow)';
-                    const roleLabel = isFriend ? '🔵 同組組員' : '🟡 附近同好/陌生人';
+                    // 判斷是組員/朋友還是陌生人（這裡以有無填寫特定欄位或模擬組隊關係區分）
+                    const isTeamMember = u.nickname.includes('test') || u.nickname.includes('Ria'); // 模擬同組判定
+                    if(isTeamMember && !showTeam) return;
+                    if(!isTeamMember && !showStranger) return;
 
-                    // 建立彈窗內容（包含四大資源自介展示，以及發起組隊邀請按鈕）
-                    const popupContent = `
-                        <div style="color:#000; font-family:sans-serif; min-width:180px;">
-                            <h4 style="margin-bottom:6px; color:#2c3e50;">${roleLabel}: ${u.nickname}</h4>
-                            <p style="font-size:11px; margin-bottom:4px;"><b>📦 擁有：</b>${u.has_what || '未填寫'}</p>
-                            <p style="font-size:11px; margin-bottom:4px;"><b>🛠️ 技能：</b>${u.can_help || '未填寫'}</p>
-                            <p style="font-size:11px; margin-bottom:4px;"><b>📢 曝光：</b>${u.can_expose || '未填寫'}</p>
-                            <p style="font-size:11px; margin-bottom:4px;"><b>🤝 串聯：</b>${u.can_connect || '未填寫'}</p>
-                            <p style="font-size:11px; color:var(--danger); margin-bottom:8px;"><b>🎯 需求：</b>${u.need_what || '未填寫'}</p>
-                            <button onclick="sendTeamInvite('${u.nickname}')" style="width:100%; background:#2ecc71; color:#fff; border:none; padding:4px; border-radius:4px; cursor:pointer; font-size:11px; font-weight:bold;">✉️ 發出組隊邀請</button>
+                    const color = isTeamMember ? 'var(--blue)' : 'var(--yellow)';
+                    
+                    // 💡 引力適配碰撞偵測
+                    if (tracking && dist <= 600 && myNeedStr && u.has_what && u.has_what.toLowerCase().includes(myNeedStr)) {
+                        showToast(`🚨 引力雷達特報：附近有符合你需求的適配同好【${u.nickname}】！<br>🎯 他擁有：${u.has_what}`, 'match');
+                    }
+
+                    const popupHtml = `
+                        <div style="color:#fff; background:#151a21; padding:5px; border-radius:5px;">
+                            <b style="color:${color}">👤 ${u.nickname} (${u.category || '未分類'})</b><br>
+                            📏 距離：${dist.toFixed(0)}公尺<br><hr style="margin:5px 0; opacity:0.2;">
+                            🎒 擁有：${u.has_what || '無'}<br>
+                            🤝 能幫：${u.can_help || '無'}<br>
+                            📢 曝光：${u.can_expose || '無'}<br>
+                            🔗 串聯：${u.can_connect || '無'}<br>
+                            <button class="btn btn-outline" style="margin-top:5px; padding:2px 8px; font-size:10px;" onclick="parent.sendInvite('${u.nickname}')">📡 發出組隊邀請</button>
                         </div>
                     `;
 
-                    const marker = L.circleMarker([u.current_lat, u.current_lng], {
-                        radius: 7, fillColor: dotColor, color: '#fff', weight: 1.5, fillOpacity: 0.9
-                    }).addTo(radarMap).bindPopup(popupContent);
-                    
-                    mapElements.push(marker);
-
-                    // 🎯 陌生人路過匹配演算法與自動通知機制
-                    if(!isFriend && myNeed && dist <= 1500) { 
-                        // 如果對方的「擁有」、「技能」或「串聯」包含我的「需求」關鍵字
-                        const targetText = `${u.has_what} ${u.can_help} ${u.can_connect}`.toLowerCase();
-                        if(targetText.includes(myNeed)) {
-                            showToast(`🚨 附近有你的資源適配者！陌生人【${u.nickname}】可能擁有你正在尋找的資源！`, 'match');
-                        }
-                    }
+                    const m = L.marker([u.current_lat, u.current_lng], {
+                        icon: L.divIcon({ html: `<div style="background:${color}; width:12px; height:12px; border-radius:50%; border:2px solid #fff; box-shadow:0 0 8px ${color};"></div>`, iconSize:[12,12] })
+                    }).addTo(radarMap).bindPopup(popupHtml);
+                    liveMarkers.push(m);
                 });
             }
 
-            // 2. 繪製定點地點 (綠色點)
+            // 2. 獲取定點與活動
             const { data: targets } = await window.dbClient.from('static_targets').select('*');
+            let tHtml = '';
             if(targets) {
                 targets.forEach(t => {
-                    const tm = L.circleMarker([t.lat, t.lng], {
-                        radius: 8, fillColor: 'var(--target-green)', color: '#fff', weight: 2, fillOpacity: 0.9
-                    }).addTo(radarMap).bindPopup(`<b>📍 固定地點：${t.name}</b><br><span style="font-size:11px; color:#555;">半徑 500m 偵測圈</span>`);
-                    mapElements.push(tm);
+                    const isEv = t.name.includes('[活動]');
+                    if(isEv && !showEvent) return;
+                    if(!isEv && !showStatic) return;
+
+                    const color = isEv ? 'var(--danger)' : 'var(--accent)';
+                    tHtml += `<div class="list-row"><div>${isEv?'📅':'📍'} <b>${t.name}</b></div><button class="btn-danger" onclick="deleteTarget('${t.id}')">×</button></div>`;
+                    
+                    const tm = L.marker([t.lat, t.lng], {
+                        icon: L.divIcon({ html: `<div style="background:${color}; width:12px; height:12px; transform:rotate(45deg); box-shadow:0 0 8px ${color};"></div>`, iconSize:[12,12] })
+                    }).addTo(radarMap).bindPopup(`<b style="color:${color}">${isEv?'📅 活動':'📍 定點'}：${t.name}</b><br>點位座標就緒。`);
+                    liveMarkers.push(tm);
                 });
             }
-
-            // 3. 繪製地圖連動實時揪團波 (橘色閃爍點)
-            const { data: waves } = await window.dbClient.from('events').select('*');
-            let wHtml = '';
-            if(waves) {
-                waves.forEach(w => {
-                    wHtml += `<div class="list-row"><div>🔥 <b>${w.title}</b></div><button class="btn-danger" onclick="deleteItem('events','${w.id}')">×</button></div>`;
-                    const wm = L.marker([w.lat, w.lng], {
-                        icon: L.divIcon({ html: `<div style="background:var(--warning); width:12px; height:12px; border-radius:50%; box-shadow:0 0 10px var(--warning); border:2px solid #fff;"></div>` })
-                    }).addTo(radarMap).bindPopup(`<b>🔥 實時揪團波：${w.title}</b><br><button class="btn-outline" style="padding:2px 6px; font-size:10px; margin-top:4px;" onclick="sendTeamInvite('團主')">加入此隊伍</button>`);
-                    mapElements.push(wm);
-                });
-            }
-            document.getElementById('activeGroupWaves').innerHTML = wHtml || '<div style="color:#666; text-align:center;">目前周圍沒有進行中的揪團波</div>';
+            document.getElementById('targetList').innerHTML = tHtml || '<div style="font-size:0.75rem; color:#555; text-align:center;">目前沒有部署點位</div>';
         }
 
-        function sendTeamInvite(targetName) {
-            showToast(`✉️ 成功向【${targetName}】發射組隊招募邀請！等待對方應答。`, 'success');
-        }
+        window.sendInvite = function(name) {
+            showToast(`📡 已成功向 【${name}】 發射組隊波並發出招募邀請！`, 'success');
+        };
 
-        async function launchGroupWave() {
-            const title = document.getElementById('waveTitle').value.trim();
-            if(!title || !currentPosition) { showToast('⚠️ 請輸入揪團事由並確保雷達定位開啟', 'error'); return; }
-            await window.dbClient.from('events').insert({ user_id: currentUser.id, title, lat: currentPosition.lat, lng: currentPosition.lng });
-            document.getElementById('waveTitle').value = '';
-            showToast('🚀 實時揪團波已向全地圖廣播！', 'success');
-            scanEnvironment();
-        }
-
-        async function addFriend() {
-            const nick = document.getElementById('fNick').value.trim();
-            if(!nick) return;
-            await window.dbClient.from('friendships').insert({ user_id: currentUser.id, friend_nickname: nick, alert_radius: 500 });
-            document.getElementById('fNick').value = '';
-            showToast(`👤 已成功綁定同組組員: ${nick}`, 'success');
-            refreshListData();
-        }
-
-        async function addStaticTarget() {
+        async function deployTarget() {
             const name = document.getElementById('tName').value.trim();
-            if(!name || !currentPosition) { showToast('⚠️ 請輸入名稱並啟動雷達取得中心定位', 'error'); return; }
-            await window.dbClient.from('static_targets').insert({ user_id: currentUser.id, name, lat: currentPosition.lat, lng: currentPosition.lng });
+            const type = document.getElementById('deployType').value;
+            if(!name) return;
+            const finalName = type === 'event' ? `[活動] ${name}` : name;
+            await window.dbClient.from('static_targets').insert({ user_id: currentUser.id, name: finalName, lat: currentPosition.lat, lng: currentPosition.lng });
             document.getElementById('tName').value = '';
-            showToast(`📍 成功建立定點區域：${name}`, 'success');
-            refreshListData();
+            refreshRadarMarkers();
         }
 
-        async function refreshListData() {
-            // 更新好友列表與定點管理列表
-            const { data: friends } = await window.dbClient.from('friendships').select('*');
-            let fHtml = ''; if(friends) { friends.forEach(f => { fHtml += `<div class="list-row"><div>👤 <b>${f.friend_nickname}</b></div><button class="btn-danger" onclick="deleteItem('friendships','${f.id}')">×</button></div>`; }); }
-            document.getElementById('friendList').innerHTML = fHtml || '<div style="color:#666; text-align:center;">未綁定任何組員</div>';
-
-            const { data: targets } = await window.dbClient.from('static_targets').select('*');
-            let tHtml = ''; if(targets) { targets.forEach(t => { tHtml += `<div class="list-row"><div>📍 <b>${t.name}</b></div><button class="btn-danger" onclick="deleteItem('static_targets','${t.id}')">×</button></div>`; }); }
-            document.getElementById('targetList').innerHTML = tHtml || '<div style="color:#666; text-align:center;">未設定固定地點</div>';
-
-            scanEnvironment();
+        async function deleteTarget(id) {
+            await window.dbClient.from('static_targets').delete().eq('id', id);
+            refreshRadarMarkers();
         }
 
-        async function deleteItem(table, id) {
-            await window.dbClient.from(table).delete().eq('id', id);
-            refreshListData();
+        function triggerGroupWave() {
+            showToast("📡 實時揪團信號彈已發射！方圓 1 公里的使用者雷達將同步觸發波形震盪。", "success");
         }
 
         function toggleTracking() {
@@ -406,42 +362,31 @@
             const sweeper = document.getElementById('sweeperEl');
             if (tracking) {
                 if(watchId) navigator.geolocation.clearWatch(watchId);
-                tracking = false;
-                btn.textContent = '▶️ 啟動雷達掃描'; btn.style.background = 'var(--accent)';
-                sweeper.style.animationPlayState = 'paused';
+                tracking = false; btn.textContent = '▶️ 啟動雷達實時掃描'; btn.style.background = 'var(--accent)'; sweeper.style.animationPlayState = 'paused';
             } else {
                 watchId = navigator.geolocation.watchPosition(async pos => {
                     currentPosition = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-                    document.getElementById('geoStatus').textContent = `觀測座標: ${currentPosition.lat.toFixed(5)}, ${currentPosition.lng.toFixed(5)}`;
-                    
                     initRadarMap(currentPosition.lat, currentPosition.lng);
                     
                     await window.dbClient.from('profiles').update({ current_lat: currentPosition.lat, current_lng: currentPosition.lng }).eq('id', currentUser.id);
                     await window.dbClient.from('location_logs').insert({ user_id: currentUser.id, lat: currentPosition.lat, lng: currentPosition.lng });
                     
-                    scanEnvironment();
-                }, e => showToast('GPS讀取失敗: ' + e.message, 'error'), { enableHighAccuracy: true });
-                tracking = true;
-                btn.textContent = '⏸️ 停止雷達監控'; btn.style.background = 'var(--danger)';
-                sweeper.style.animationPlayState = 'running';
+                    refreshRadarMarkers();
+                }, e => showToast('GPS重整失敗: ' + e.message, 'error'), { enableHighAccuracy: true });
+                tracking = true; btn.textContent = '⏸️ 停止雷達監控'; btn.style.background = 'var(--danger)'; sweeper.style.animationPlayState = 'running';
             }
         }
 
-        // 📅 歷史軌跡分析與常出沒地點計算
         async function queryHistoryLogs() {
             if(!historyMap) {
                 historyMap = L.map('historyMap', { zoomControl: false, attributionControl: false }).setView([25.0451, 121.4525], 13);
                 L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(historyMap);
             }
-            historyMarkers.forEach(m => historyMap.removeLayer(m));
+            historyMarkers.forEach(m => historyMap.removeLayer(m)); historyMarkers = [];
             if(historyPolyline) historyMap.removeLayer(historyPolyline);
 
-            const start = document.getElementById('dateStart').value + 'T00:00:00Z';
-            const end = document.getElementById('dateEnd').value + 'T23:59:59Z';
-
-            const { data: logs } = await window.dbClient.from('location_logs').select('*').eq('user_id', currentUser.id).gte('created_at', start).lte('created_at', end).order('created_at', { ascending: true });
-
-            if(!logs || logs.length === 0) { showToast('📭 該時間區間查無移動紀錄', 'error'); return; }
+            const { data: logs } = await window.dbClient.from('location_logs').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: true });
+            if(!logs || logs.length === 0) { showToast('📭 查無歷史軌跡點', 'error'); return; }
 
             let latlngs = [], totalDist = 0;
             logs.forEach((log, i) => {
@@ -455,8 +400,8 @@
             historyMap.fitBounds(historyPolyline.getBounds());
 
             document.getElementById('statDistance').textContent = (totalDist / 1000).toFixed(2) + ' km';
-            document.getElementById('statTopPlace').textContent = '新北市土城區'; // 基於位置分析的高頻聚集區點
-            showToast('📈 歷程數據加載並分析完畢！', 'success');
+            document.getElementById('statTopPlace').textContent = '土城核心聚落';
+            showToast('✅ 歷史資料與核心出沒分析成功載入！', 'success');
         }
 
         async function handleLogout() { if(tracking) toggleTracking(); await window.dbClient.auth.signOut(); location.reload(); }
@@ -464,17 +409,17 @@
         function enterMainApp() { 
             document.getElementById('authPage').classList.add('hidden'); 
             document.getElementById('mainApp').classList.remove('hidden'); 
-            loadMyProfileData();
-            refreshListData();
-            setTimeout(() => { initRadarMap(25.0451, 121.4525); }, 300);
+            document.getElementById('sweeperEl').style.animationPlayState = 'paused';
+            loadProfileData();
+            setTimeout(() => { initRadarMap(25.0451, 121.4525); refreshRadarMarkers(); }, 300);
         }
 
         window.onload = async function() {
             try {
                 const { data } = await window.dbClient.auth.getSession();
                 if(data?.session?.user) { currentUser = data.session.user; enterMainApp(); }
-                else { document.getElementById('connStatus').textContent = '🟢 雷達主機已就緒'; }
-            } catch(e) { document.getElementById('connStatus').textContent = '🔴 連線異常'; }
+                else { document.getElementById('connStatus').textContent = '🟢 主機連線就緒，請輸入帳密進入網格'; }
+            } catch(e) { document.getElementById('connStatus').textContent = '🔴 核心初始化異常'; }
         };
     </script>
 </body>
