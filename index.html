@@ -100,16 +100,34 @@
                     </select>
                 </div>
                 <div>
-                    <span style="font-size:0.75rem; color:var(--accent);">👁️ 顯示圖層控制：</span>
+                    <span style="font-size:0.75rem; color:var(--accent);">👁️ 圖層勾選顯示控制：</span>
                     <div style="font-size:0.8rem; display:flex; flex-direction:column; gap:4px; margin-top:4px;">
                         <label><input type="checkbox" id="showStrangers" checked onchange="refreshRadarMarkers()"> 陌生人 (黃點)</label>
                         <label><input type="checkbox" id="showFriends" checked onchange="refreshRadarMarkers()"> 朋友/組員 (藍點)</label>
                         <label><input type="checkbox" id="showTargets" checked onchange="refreshRadarMarkers()"> 固定地點 (綠點)</label>
-                        <label><input type="checkbox" id="showTeams" checked onchange="refreshRadarMarkers()"> 隊伍波 (紅點)</label>
+                        <label><input type="checkbox" id="showTeams" checked onchange="refreshRadarMarkers()"> ⚡ 組隊中同好 (紅點外圈)</label>
                     </div>
                 </div>
             </div>
             <div id="geoStatus" style="font-size:0.7rem; font-family:monospace; text-align:center; color:var(--accent);">GPS 座標：未指派</div>
+        </div>
+
+        <div class="card" style="border: 1px solid var(--team-color);">
+            <div class="card-title" style="color: var(--team-color);">🔥 我的即時組隊揪團狀態</div>
+            <div style="display:flex; flex-direction:column; gap:6px;">
+                <input type="text" id="teamTitle" placeholder="輸入目前招募隊伍名稱 (如: 健身工廠練腿揪團)">
+                <select id="teamCategory">
+                    <option value="健身團">健身團</option>
+                    <option value="吃貨團">吃貨團</option>
+                    <option value="商務交流">商務交流</option>
+                    <option value="科技新創">科技新創</option>
+                </select>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-top:4px;">
+                    <button class="btn" style="background:var(--team-color); color:#fff;" onclick="changeTeamStatus(true)">🟢 開啟組隊狀態</button>
+                    <button class="btn" style="background:var(--surface2); color:#fff;" onclick="changeTeamStatus(false)">🛑 關閉組隊顯示</button>
+                </div>
+            </div>
+            <div id="myActiveTeamStatus" style="font-size:0.8rem; color:#fff; text-align:center; margin-top:4px; font-weight:bold;">當前狀態：未開啟組隊</div>
         </div>
 
         <div class="card">
@@ -124,7 +142,7 @@
                 </select>
             </div>
             <div style="display:flex; flex-direction:column; gap:6px;">
-                <label style="font-size:0.75rem; color:#fff;">💡 我擁有的資源 (我的引力四大資源之一)：</label>
+                <label style="font-size:0.75rem; color:#fff;">💡 我擁有的資源：</label>
                 <textarea id="myHasWhat" placeholder="例如：我有多年全端開發技術、供應鏈工廠資源..."></textarea>
                 
                 <label style="font-size:0.75rem; color:#fff;">🤝 我可以幫到你什麼：</label>
@@ -137,21 +155,6 @@
                 <textarea id="myNeedWhat" placeholder="例如：我需要尋找行銷團隊、或尋找健身核心夥伴..."></textarea>
             </div>
             <button class="btn btn-primary" onclick="saveProfile()">💾 儲存並更新引力設定</button>
-        </div>
-
-        <div class="card">
-            <div class="card-title">🔥 地圖發起實時揪團波</div>
-            <div style="display:flex; flex-direction:column; gap:6px;">
-                <input type="text" id="teamTitle" placeholder="輸入隊伍名稱 (例如: 撈王外帶吃貨團出發)">
-                <select id="teamCategory">
-                    <option value="吃貨團">吃貨團</option>
-                    <option value="健身團">健身團</option>
-                    <option value="商務交流">商務交流</option>
-                    <option value="科技新創">科技新創</option>
-                </select>
-                <button class="btn btn-primary" style="background:#e74c3c; color:#fff;" onclick="launchTeamWave()">📡 發射實時揪團波 (綁定我的 GPS)</button>
-            </div>
-            <div id="myActiveTeam" style="font-size:0.8rem; color:var(--accent); text-align:center;"></div>
         </div>
 
         <div class="card">
@@ -215,7 +218,7 @@
 
         function toggleAuthMode() {
             isRegister = !isRegister;
-            document.getElementById('nickGroup').toggle('hidden', !isRegister);
+            document.getElementById('nickGroup').classList.toggle('hidden', !isRegister);
             document.getElementById('authActionBtn').textContent = isRegister ? '註冊全新探索帳號' : '進入引力網格';
             document.getElementById('authToggleBtn').textContent = isRegister ? '已有帳號？返回登入' : '初次探索？切換註冊';
         }
@@ -255,13 +258,20 @@
         // ======= 🚀 個人簡介與引力設定模組 =======
         async function loadProfileData() {
             if(!currentUser) return;
-            const { data, error } = await window.dbClient.from('profiles').select('*').eq('id', currentUser.id).single();
+            const { data } = await window.dbClient.from('profiles').select('*').eq('id', currentUser.id).single();
             if(data) {
                 if(data.category) document.getElementById('myProfileCategory').value = data.category;
                 document.getElementById('myHasWhat').value = data.has_what || '';
                 document.getElementById('myCanHelp').value = data.can_help || '';
                 document.getElementById('myCanExpose').value = data.can_expose || '';
                 document.getElementById('myNeedWhat').value = data.need_what || '';
+                
+                // 讀取當前組隊資訊
+                if(data.is_teaming) {
+                    document.getElementById('teamTitle').value = data.team_name || '';
+                    document.getElementById('teamCategory').value = data.team_category || '健身團';
+                    document.getElementById('myActiveTeamStatus').innerHTML = `🔴 隊伍招募中: ${data.team_name} (${data.team_category})`;
+                }
             }
         }
 
@@ -279,7 +289,37 @@
             else { showToast('💾 引力資源與自介更新成功！', 'success'); refreshRadarMarkers(); }
         }
 
-        // ======= 🛰️ 雷達與實時控制地圖核心 =======
+        // ======= 🔥 核心修正：一鍵開關個人 GPS 上的組隊狀態 =======
+        async function changeTeamStatus(enable) {
+            if(!currentUser) return;
+            const title = document.getElementById('teamTitle').value.trim();
+            const cat = document.getElementById('teamCategory').value;
+
+            if(enable && !title) { showToast('⚠️ 請先輸入隊伍名稱再開啟組隊！', 'error'); return; }
+
+            const updates = {
+                is_teaming: enable,
+                team_name: enable ? title : null,
+                team_category: enable ? cat : null
+            };
+
+            const { error } = await window.dbClient.from('profiles').update(updates).eq('id', currentUser.id);
+            if(error) {
+                showToast('變更組隊狀態失敗: ' + error.message, 'error');
+            } else {
+                if(enable) {
+                    showToast(`🔴 已成功開啟組隊！目前掛載在您的 GPS 點上`, 'success');
+                    document.getElementById('myActiveTeamStatus').innerHTML = `🔴 隊伍招募中: ${title} (${cat})`;
+                } else {
+                    showToast(`🛑 已關閉組隊顯示`, 'info');
+                    document.getElementById('myActiveTeamStatus').innerHTML = `當前狀態：未開啟組隊`;
+                    document.getElementById('teamTitle').value = '';
+                }
+                refreshRadarMarkers();
+            }
+        }
+
+        // ======= 🛰️ 雷達地圖中心 =======
         function initRadarMap(lat, lng) {
             if (radarMap) {
                 radarMap.setView([lat, lng]);
@@ -325,7 +365,7 @@
             }
         }
 
-        // ======= 📡 核心演算刷新標記 =======
+        // ======= 📡 核心：刷新與多功能過濾（組隊紅點篩選） =======
         async function refreshRadarMarkers() {
             if(!radarMap || !currentPosition) return;
 
@@ -341,45 +381,66 @@
             const { data: myFriends } = await window.dbClient.from('friendships').select('friend_email');
             const friendEmails = myFriends ? myFriends.map(f => f.friend_email) : [];
 
+            // 讀取所有具有位置的人
             const { data: users } = await window.dbClient.from('profiles').select('*').not('current_lat', 'is', null);
             
             if(users) {
                 const myNeed = document.getElementById('myNeedWhat').value.toLowerCase();
 
                 users.forEach(u => {
-                    if(u.id === currentUser.id) return; 
+                    // 如果這個人「正在組隊」，且我們勾選了依據雷達類別篩選
+                    // 如果他設定的組隊類別不等於雷達篩選類別，且雷達不是選「全類別」，直接過濾掉
+                    const targetCategory = u.is_teaming ? u.team_category : u.category;
+                    const isMatchCategory = (selectedCategory === '全類別' || targetCategory === selectedCategory);
+                    if(!isMatchCategory) return;
 
                     const isFriend = friendEmails.includes(u.email);
-                    const isMatchCategory = (selectedCategory === '全類別' || u.category === selectedCategory);
 
-                    if(!isMatchCategory) return; 
-                    if(isFriend && !showFriends) return;
-                    if(!isFriend && !showStrangers) return;
+                    // 🎯 核心圖層控制：
+                    if (u.is_teaming) {
+                        // 如果這個人正在組隊，但使用者「取消勾選」了組隊同好，就不顯示
+                        if (!showTeams) return;
+                    } else {
+                        // 普通狀態下，區分好友或陌生人開關
+                        if (isFriend && !showFriends) return;
+                        if (!isFriend && !showStrangers) return;
+                    }
 
                     const dist = calcDistance(currentPosition.lat, currentPosition.lng, u.current_lat, u.current_lng);
                     
-                    if (dist <= 200 && myNeed.length > 0 && u.has_what) {
+                    // 碰撞引力通知
+                    if (u.id !== currentUser.id && dist <= 200 && myNeed.length > 0 && u.has_what) {
                         if (u.has_what.toLowerCase().includes(myNeed) && !lastNotifiedUsers.has(u.id)) {
-                            showToast(`📡 資源引力引爆！附近現適配對象：【${u.nickname}】！他擁有的資源符合你的需求！`, 'match');
+                            showToast(`📡 資源引力引爆！附近現適配對象：【${u.nickname}】！`, 'match');
                             lastNotifiedUsers.add(u.id);
                         }
                     }
 
-                    const dotColor = isFriend ? 'var(--friend-color)' : 'var(--stranger-color)';
+                    // 🎨 顏色分配：正在組隊的直接套用耀眼紅點外圈！好友藍點，陌生人黃點
+                    let dotHtml = '';
+                    if (u.is_teaming) {
+                        dotHtml = `<div style="background:var(--team-color); width:16px; height:16px; border-radius:50%; border:2px solid #fff; box-shadow:0 0 12px var(--team-color); display:flex; align-items:center; justify-content:center; font-size:9px; color:#fff; font-weight:bold;">🔥</div>`;
+                    } else {
+                        const dotColor = isFriend ? 'var(--friend-color)' : 'var(--stranger-color)';
+                        dotHtml = `<div style="background:${dotColor}; width:12px; height:12px; border-radius:50%; border:2px solid #fff; box-shadow:0 0 8px ${dotColor};"></div>`;
+                    }
                     
                     const marker = L.marker([u.current_lat, u.current_lng], {
-                        icon: L.divIcon({
-                            html: `<div style="background:${dotColor}; width:12px; height:12px; border-radius:50%; border:2px solid #fff; box-shadow:0 0 8px ${dotColor};"></div>`,
-                            iconSize:[12,12], iconAnchor:[6,6]
-                        })
+                        icon: L.divIcon({ html: dotHtml, iconSize:[16,16], iconAnchor:[8,8] })
                     }).addTo(radarMap);
 
+                    // 點開彈出個人引力自介 + 組隊看板
+                    let teamBannerHtml = u.is_teaming 
+                        ? `<div style="background:#e74c3c; color:#fff; padding:6px; border-radius:4px; margin-bottom:8px; font-size:11px;">🚀 <b>正在發起組隊：</b><br>${u.team_name} (${u.team_category})<br><button onclick="showToast('🤝 已送出加入申請！','success')" style="margin-top:4px; border:none; background:#fff; color:#e74c3c; font-weight:bold; padding:2px 6px; border-radius:3px; cursor:pointer;">申請加入隊伍</button></div>`
+                        : '';
+
                     const popupHtml = `
-                        <div style="font-family:sans-serif; color:#333; min-width:200px;">
-                            <h4 style="color:#2c3e50; margin-bottom:5px;">👤 ${u.nickname} (${u.category || '未分類'})</h4>
-                            <p style="font-size:11px; color:#7f8c8d; margin-bottom:6px;">距離你：${dist.toFixed(0)}公尺</p>
+                        <div style="font-family:sans-serif; color:#333; min-width:210px;">
+                            <h4 style="color:#2c3e50; margin-bottom:5px;">👤 ${u.nickname} ${u.id === currentUser.id ? '(我)' : ''}</h4>
+                            <p style="font-size:11px; color:#7f8c8d; margin-bottom:6px;">距離：${dist.toFixed(0)} 公尺 | 類別: ${u.category || '未分類'}</p>
+                            ${teamBannerHtml}
                             <hr style="border:0; border-top:1px solid #eee; margin-bottom:6px;">
-                            <div style="font-size:12px; line-height:1.4;">
+                            <div style="font-size:11px; line-height:1.4;">
                                 <b>💪 擁有資源：</b>${u.has_what || '未填寫'}<br>
                                 <b>🤝 可幫到什麼：</b>${u.can_help || '未填寫'}<br>
                                 <b>📢 資源串聯曝光：</b>${u.can_expose || '未填寫'}<br>
@@ -392,6 +453,7 @@
                 });
             }
 
+            // 固定地點渲染 (綠點)
             if (showTargets) {
                 const { data: targets } = await window.dbClient.from('static_targets').select('*');
                 if(targets) {
@@ -406,58 +468,9 @@
                     });
                 }
             }
-
-            if (showTeams) {
-                const { data: teams } = await window.dbClient.from('trigger_logs').select('*'); 
-                if(teams) {
-                    teams.forEach(team => {
-                        if (selectedCategory !== '全類別' && team.category !== selectedCategory) return;
-
-                        const teamMarker = L.marker([team.lat, team.lng], {
-                            icon: L.divIcon({
-                                html: `<div style="background:var(--team-color); width:14px; height:14px; transform:rotate(45deg); border:2px solid #fff; box-shadow:0 0 10px var(--team-color);"></div>`,
-                                iconSize:[14,14], iconAnchor:[7,7]
-                            })
-                        }).addTo(radarMap).bindPopup(`
-                            <div style="color:#333;">
-                                <span style="background:#e74c3c; color:#fff; font-size:10px; padding:2px 4px; border-radius:3px;">🔥 實時揪團波</span>
-                                <h4 style="margin-top:5px;">📋 隊伍: ${team.team_name}</h4>
-                                <p style="font-size:12px;">類別: ${team.category}</p>
-                                <button onclick="showToast('🤝 已成功向該隊伍發出組隊申請！','success')" style="margin-top:5px; padding:4px 8px; font-size:11px; background:#2ecc71; color:#fff; border:none; border-radius:4px; cursor:pointer;">申請加入組隊</button>
-                            </div>
-                        `);
-                        mapElements.push(teamMarker);
-                    });
-                }
-            }
         }
 
-        // ======= 🔥 地圖版實時揪團波功能 (已修正 type 欄位約束) =======
-        async function launchTeamWave() {
-            const title = document.getElementById('teamTitle').value.trim();
-            const cat = document.getElementById('teamCategory').value;
-            if(!title || !currentPosition) { showToast('⚠️ 請輸入隊伍名稱並開啟雷達取得 GPS 點！', 'error'); return; }
-
-            // ✨ 重點修正：丟資料時，同時夾帶一組預設的 'team_wave' 值給 type 欄位，滿足 Not-Null 約束
-            const { error } = await window.dbClient.from('trigger_logs').insert({
-                user_id: currentUser.id,
-                team_name: title,
-                category: cat,
-                lat: currentPosition.lat,
-                lng: currentPosition.lng,
-                type: 'team_wave' 
-            });
-
-            if(error) showToast('揪團失敗: ' + error.message, 'error');
-            else {
-                showToast(`📡 揪團波「${title}」已成功掛載至您的實時 GPS 位置發散！`, 'success');
-                document.getElementById('myActiveTeam').textContent = `📢 當前發起中: ${title} (${cat})`;
-                document.getElementById('teamTitle').value = '';
-                refreshRadarMarkers();
-            }
-        }
-
-        // ======= 📍 固定地點管理模組 =======
+        // ======= 📍 固定地點管理 =======
         async function loadStaticTargets() {
             const { data } = await window.dbClient.from('static_targets').select('*');
             let html = '';
@@ -484,7 +497,7 @@
             refreshRadarMarkers();
         }
 
-        // ======= 🧑‍🤝‍🧑 好友管理與綁定模組 =======
+        // ======= 🧑‍🤝‍🧑 好友管理 =======
         async function loadFriends() {
             const { data } = await window.dbClient.from('friendships').select('*');
             let html = '';
@@ -515,7 +528,7 @@
             refreshRadarMarkers();
         }
 
-        // ======= 📊 歷史軌跡與數據分析 =======
+        // ======= 📊 歷史軌跡 =======
         async function queryHistoryLogs() {
             if(!historyMap) {
                 historyMap = L.map('historyMap', { attributionControl: false }).setView([25.0451, 121.4525], 13);
