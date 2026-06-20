@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>🟢 TribeRadar 終極引力雷達 V3.1</title>
+    <title>🟢 TribeRadar 終極引力雷達 V3.2</title>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -205,10 +205,28 @@
         <div class="card">
             <div class="card-title">📍 定點目標區域管理</div>
             <div id="targetList" style="display:flex; flex-direction:column; gap:6px;"></div>
+            
             <div style="display:flex; flex-direction:column; gap:8px; background:var(--surface2); padding:10px; border-radius:8px;">
-                <input type="text" id="tName" placeholder="新增自設固定地點名稱">
+                <span style="font-size:0.75rem; color:var(--accent);">🔍 1. 智慧尋找台灣地標或地址：</span>
+                <div style="display:grid; grid-template-columns: 1fr auto; gap:6px;">
+                    <input type="text" id="geoSearchInput" placeholder="例如: 台北101、板橋健身工廠...">
+                    <button class="btn btn-outline" style="padding:8px 12px;" onclick="searchAddressWithTomTom()">🔍 搜尋定位</button>
+                </div>
+
+                <div class="grid-2" style="margin-top:4px;">
+                    <div>
+                        <span style="font-size:0.7rem; color:#888;">經度 (Lat):</span>
+                        <input type="text" id="tLat" placeholder="點選或搜尋帶入" readonly style="font-size:0.8rem; background:#111;">
+                    </div>
+                    <div>
+                        <span style="font-size:0.7rem; color:#888;">緯度 (Lng):</span>
+                        <input type="text" id="tLng" placeholder="點選或搜尋帶入" readonly style="font-size:0.8rem; background:#111;">
+                    </div>
+                </div>
+
+                <input type="text" id="tName" placeholder="2. 確認或修改自設地點名稱">
                 <div>
-                    <span style="font-size:0.75rem; color:var(--accent); display:block; margin-bottom:4px;">選擇定點分類標籤 (至少填寫一個)：</span>
+                    <span style="font-size:0.75rem; color:var(--accent); display:block; margin-bottom:4px;">3. 選擇定點分類標籤：</span>
                     <select id="tTag">
                         <option value="#美食類">#美食類</option>
                         <option value="#戶外類">#戶外類</option>
@@ -217,7 +235,8 @@
                         <option value="#學習類">#學習類</option>
                     </select>
                 </div>
-                <button class="btn btn-outline" onclick="addStaticTarget()">+ 新增定點</button>
+                <button class="btn btn-primary" style="padding:10px;" onclick="addStaticTarget()">+ 將此地點存入雲端定點</button>
+                <div style="font-size:0.7rem; text-align:center; color:#666;">💡 小秘訣：除了搜尋，直接用手指在雷達地圖上「點擊」也能直接抓取座標喔！</div>
             </div>
         </div>
 
@@ -237,6 +256,9 @@
         window.SUPABASE_URL = 'https://hknxdvefnuxgyepuuqra.supabase.co';
         window.SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhrbnhkdmVmbnV4Z3llcHV1cXJhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1MzM0MDAsImV4cCI6MjA5NzEwOTQwMH0.M97OwM_9CrLCrgxbyA6kQs0MLFiRDzyYlvIiGqhBGec';
         
+        // TomTom API Key 
+        const TOMTOM_KEY = 'zVGlGAsKGQAnvAbZpAmAAmI9X9GGvAjZ'; 
+
         if (!window.dbClient) {
             window.dbClient = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_KEY);
         }
@@ -261,7 +283,45 @@
             return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
         }
 
-        // 大頭貼即時網址預覽功能
+        // 🔍 TomTom Geocoding 跨國精準搜尋與定位轉換協定
+        async function searchAddressWithTomTom() {
+            const query = document.getElementById('geoSearchInput').value.trim();
+            if(!query) { showToast('⚠️ 請先輸入要搜尋的地標或地址', 'error'); return; }
+
+            showToast('🔍 正在向 TomTom 伺服器請求地理數據...', 'info');
+            
+            // 限制僅搜尋台灣地區（countrySet=TW）並支援中文模糊比對
+            const url = `https://api.tomtom.com/search/2/geocode/${encodeURIComponent(query)}.json?key=${TOMTOM_KEY}&countrySet=TW&language=zh-TW&limit=1`;
+
+            try {
+                const response = await fetch(url);
+                const result = await response.json();
+
+                if (result.results && result.results.length > 0) {
+                    const place = result.results[0];
+                    const lat = place.position.lat;
+                    const lng = place.position.lon;
+                    
+                    // 自動填入表單
+                    document.getElementById('tLat').value = lat;
+                    document.getElementById('tLng').value = lng;
+                    document.getElementById('tName').value = place.address.freeformAddress || query;
+
+                    // 地圖聚焦轉場
+                    if(radarMap) {
+                        radarMap.setView([lat, lng], 16);
+                        L.popup().setLatLng([lat, lng]).setContent(`🎯 已為您尋獲：<br>${place.address.freeformAddress || query}`).openOn(radarMap);
+                    }
+                    showToast('🎯 解析成功！已成功在雷達盤面上定位該座標。', 'success');
+                } else {
+                    showToast('📭 找不到該地點，請嘗試輸入更完整的名稱或地址', 'error');
+                }
+            } catch (err) {
+                showToast('網路連線失敗，請檢查 TomTom API 狀態', 'error');
+                console.error(err);
+            }
+        }
+
         function previewAvatarUrl() {
             const url = document.getElementById('avatarUrlInput').value.trim();
             document.getElementById('myAvatarDisplay').src = url || DEFAULT_AVATAR;
@@ -342,6 +402,14 @@
             L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(radarMap);
             myMarker = L.marker([lat, lng], { icon: L.divIcon({ html: `<div style="background:#fff; width:14px; height:14px; border-radius:50%; border:3px solid var(--accent); box-shadow:0 0 12px var(--accent);"></div>`, iconSize:[14,14] }) }).addTo(radarMap);
             radarCircle = L.circle([lat, lng], { radius: 1500, color: 'var(--accent)', weight: 1, fillColor: 'var(--accent)', fillOpacity: 0.02 }).addTo(radarMap);
+
+            // 💡 額外加值功能：點擊地圖任意處，也能自動解析經緯度帶入定點表單
+            radarMap.on('click', function(e) {
+                document.getElementById('tLat').value = e.latlng.lat.toFixed(6);
+                document.getElementById('tLng').value = e.latlng.lng.toFixed(6);
+                document.getElementById('tName').value = `地圖選定點 (${e.latlng.lat.toFixed(4)}, ${e.latlng.lng.toFixed(4)})`;
+                showToast('📍 已透過地圖點擊選定經緯度座標！', 'info');
+            });
         }
 
         function toggleTracking() {
@@ -519,17 +587,25 @@
 
         async function addStaticTarget() {
             const name = document.getElementById('tName').value.trim();
+            const lat = document.getElementById('tLat').value;
+            const lng = document.getElementById('tLng').value;
             const tagValue = document.getElementById('tTag').value;
-            if(!name) return;
+            
+            if(!name || !lat || !lng) { showToast('⚠️ 請先點擊地圖或搜尋地址來帶入經緯度', 'error'); return; }
             
             await window.dbClient.from('static_targets').insert({ 
                 user_id: currentUser.id, 
                 name, 
-                lat: currentPosition.lat, 
-                lng: currentPosition.lng,
+                lat: parseFloat(lat), 
+                lng: parseFloat(lng),
                 tags: [tagValue]
             });
-            document.getElementById('tName').value = ''; showToast('📍 固定地點與標籤綁定成功！', 'success');
+            document.getElementById('tName').value = '';
+            document.getElementById('tLat').value = '';
+            document.getElementById('tLng').value = '';
+            document.getElementById('geoSearchInput').value = '';
+            
+            showToast('📍 固定地點與標籤儲存成功！', 'success');
             loadStaticTargets(); refreshRadarMarkers();
         }
 
