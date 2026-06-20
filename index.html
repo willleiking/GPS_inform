@@ -236,7 +236,9 @@
     <script>
         window.SUPABASE_URL = 'https://hknxdvefnuxgyepuuqra.supabase.co';
         window.SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhrbnhkdmVmbnV4Z3llcHV1cXJhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1MzM0MDAsImV4cCI6MjA5NzEwOTQwMH0.M97OwM_9CrLCrgxbyA6kQs0MLFiRDzyYlvIiGqhBGec';
-        if (!window.dbClient) window.dbClient = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_KEY);
+        if (!window.dbClient) {
+            window.dbClient = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_KEY);
+        }
 
         let currentUser = null, tracking = false, watchId = null, currentPosition = { lat: 25.0451, lng: 121.4525 };
         let radarMap = null, myMarker = null, radarCircle = null, historyMap = null, historyPolyline = null;
