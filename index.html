@@ -222,7 +222,7 @@
         </div>
 
         <div class="card">
-            <div class="card-title">📅 歷史軌跡與出沒數據分析</div>
+            <div class="card-title">📅 歷史軌跡與出沒數據 analysis</div>
             <div class="grid-2">
                 <input type="date" id="dateStart" value="2026-06-19">
                 <input type="date" id="dateEnd" value="2026-06-20">
@@ -234,8 +234,10 @@
     </div>
 
     <script>
+        // 【關鍵修復】：完全移除所有 const supabase 或 let supabase 的重複宣告，統一改用 window.dbClient 避免瀏覽器崩潰
         window.SUPABASE_URL = 'https://hknxdvefnuxgyepuuqra.supabase.co';
         window.SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhrbnhkdmVmbnV4Z3llcHV1cXJhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1MzM0MDAsImV4cCI6MjA5NzEwOTQwMH0.M97OwM_9CrLCrgxbyA6kQs0MLFiRDzyYlvIiGqhBGec';
+        
         if (!window.dbClient) {
             window.dbClient = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_KEY);
         }
@@ -259,31 +261,27 @@
             return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
         }
 
-        // 核心功能：實體大頭貼上傳（覆蓋舊檔機制）
+        // 大頭貼實體圖檔儲存（自動覆蓋舊圖節節省空間）
         async function uploadAvatarFile() {
             const fileInput = document.getElementById('avatarFileInput');
             if (!fileInput.files || fileInput.files.length === 0) return;
             const file = fileInput.files[0];
             
-            // 使用使用者 ID 作為檔名，這樣每次上傳新圖都會自動覆蓋同一路徑，實現節省雲端空間
             const filePath = `${currentUser.id}_avatar.png`;
             showToast('正在上傳大頭貼並同步雲端節點...', 'info');
 
-            // 執行上傳（設定 upsert: true 代表如果檔案存在直接覆蓋取代）
             const { data, error } = await window.dbClient.storage
                 .from('avatars')
                 .upload(filePath, file, { cacheControl: '10', upsert: true });
 
             if (error) {
-                showToast('圖片上傳失敗，請確認 Storage 已建立 avatars 儲桶: ' + error.message, 'error');
+                showToast('圖片上傳失敗，請確認 Storage 是否已建立 avatars 公開儲桶: ' + error.message, 'error');
                 return;
             }
 
-            // 取得公開的圖檔網址
             const { data: urlData } = window.dbClient.storage.from('avatars').getPublicUrl(filePath);
             const publicUrl = urlData.publicUrl;
 
-            // 將公開網址寫回使用者 Profile 資料表
             await window.dbClient.from('profiles').update({ avatar_url: publicUrl }).eq('id', currentUser.id);
             document.getElementById('myAvatarDisplay').src = publicUrl;
             showToast('📷 大頭貼更新成功，舊頭像已自動釋放覆蓋！', 'success');
@@ -401,7 +399,7 @@
                 users.forEach(u => {
                     if(u.id === currentUser.id) return;
                     const dist = calcDistance(currentPosition.lat, currentPosition.lng, u.current_lat, u.current_lng);
-                    if(dist > 1500) return; // 規範5 限制
+                    if(dist > 1500) return; 
 
                     const isFriend = fEmails.includes(u.email);
                     const uCat = u.is_teaming ? u.team_category : u.category;
@@ -426,7 +424,6 @@
                     const marker = L.marker([u.current_lat, u.current_lng], { icon: L.divIcon({ html: dotHtml, iconSize:[16,16] }) }).addTo(radarMap);
                     let teamBox = u.is_teaming ? `<div style="background:var(--team-color); color:#fff; padding:6px; border-radius:4px; margin-bottom:6px; font-size:11px;"><b>👥 招募隊伍：</b>${u.team_name}</div>` : '';
 
-                    // 規範 2 強化：直接顯示真實雲端大頭貼圖片，非外部連結
                     marker.bindPopup(`
                         <div style="color:#333; min-width:180px; text-align:center;">
                             <img src="${u.avatar_url || 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png'}" class="avatar-preview"><br>
@@ -446,7 +443,7 @@
                 });
             }
 
-            // 固定地點渲染（含標籤渲染顯示）
+            // 固定地點渲染（含標籤功能）
             if (showTargets) {
                 const { data: targets } = await window.dbClient.from('static_targets').select('*');
                 if(targets) {
@@ -468,7 +465,7 @@
             if(data) {
                 data.forEach(t => {
                     const dist = calcDistance(currentPosition.lat, currentPosition.lng, t.current_lat, t.current_lng);
-                    if (dist > 10000) return; // 10KM 限制作業
+                    if (dist > 10000) return; 
                     html += `<div class="list-row" style="cursor:pointer;" onclick="focusOnMap(${t.current_lat}, ${t.current_lng}, '${t.team_name}')">
                         <span>🏷️ [${t.team_category}] <b>${t.team_name}</b> <small style="color:#888;">(${ (dist/1000).toFixed(1) }km)</small></span>
                         <span style="font-size:11px; color:var(--accent);">🎯 定位地圖</span>
@@ -539,13 +536,11 @@
 
         async function deleteFriend(id) { await window.dbClient.from('friendships').delete().eq('id', id); loadFriends(); refreshRadarMarkers(); }
 
-        // 規範 9 核心修正：新增包含實體文字標籤陣列的固定地點
         async function addStaticTarget() {
             const name = document.getElementById('tName').value.trim();
             const tagValue = document.getElementById('tTag').value;
             if(!name) return;
             
-            // 將單個標籤包進 PostgreSQL 陣列中儲存
             await window.dbClient.from('static_targets').insert({ 
                 user_id: currentUser.id, 
                 name, 
@@ -561,4 +556,39 @@
             const { data } = await window.dbClient.from('static_targets').select('*');
             let html = ''; 
             if(data) { 
-                data.forEach(t => {
+                data.forEach(t => { 
+                    let tagsStr = t.tags ? t.tags.join(' ') : '';
+                    html += `<div class="list-row"><span>📍 <b>${t.name}</b> <small style="color:var(--accent); font-family:monospace;">${tagsStr}</small></span><button class="btn-danger" onclick="deleteTarget('${t.id}')">×</button></div>`; 
+                }); 
+            }
+            document.getElementById('targetList').innerHTML = html;
+        }
+
+        async function deleteTarget(id) { await window.dbClient.from('static_targets').delete().eq('id', id); loadStaticTargets(); refreshRadarMarkers(); }
+
+        async function queryHistoryLogs() {
+            if(!historyMap) { historyMap = L.map('historyMap', { attributionControl: false }).setView([25.0451, 121.4525], 13); L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(historyMap); }
+            historyMarkers.forEach(m => historyMap.removeLayer(m)); historyMarkers = []; if(historyPolyline) historyMap.removeLayer(historyPolyline);
+            const start = document.getElementById('dateStart').value + 'T00:00:00Z'; const end = document.getElementById('dateEnd').value + 'T23:59:59Z';
+            const { data: logs } = await window.dbClient.from('location_logs').select('*').eq('user_id', currentUser.id).gte('created_at', start).lte('created_at', end).order('created_at', { ascending: true });
+            if(!logs || logs.length === 0) { showToast('📭 該日期無移動紀錄軌跡', 'error'); return; }
+            let latlngs = []; logs.forEach(log => { latlngs.push([log.lat, log.lng]); const m = L.circleMarker([log.lat, log.lng], { radius: 4, color: 'var(--accent)' }).addTo(historyMap); historyMarkers.push(m); });
+            historyPolyline = L.polyline(latlngs, { color: 'var(--accent)', weight: 3 }).addTo(historyMap); historyMap.fitBounds(historyPolyline.getBounds());
+            showToast('✅ 軌跡加載成功！', 'success');
+        }
+
+        function enterMainApp() { 
+            document.getElementById('authPage').classList.add('hidden'); document.getElementById('mainApp').classList.remove('hidden'); 
+            loadProfileData(); loadStaticTargets(); loadFriends(); loadTeamNoticeBoard();
+            setTimeout(() => { initRadarMap(25.0451, 121.4525); }, 300); 
+            setInterval(() => { if(tracking) { refreshRadarMarkers(); loadTeamNoticeBoard(); } if(activeChatFriendId) loadChatMessages(); }, 6000);
+        }
+
+        window.onload = async function() {
+            const { data } = await window.dbClient.auth.getSession();
+            if(data?.session?.user) { currentUser = data.session.user; enterMainApp(); }
+            else { document.getElementById('connStatus').textContent = '🟢 雷達主機就緒，請輸入帳密進入'; }
+        };
+    </script>
+</body>
+</html>
