@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>🟢 TribeRadar 終極引力雷達 V3.0</title>
+    <title>🟢 TribeRadar 終極引力雷達 V3.1</title>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -150,8 +150,8 @@
             
             <div style="background:var(--surface2); padding:12px; border-radius:8px; text-align:center; display:flex; flex-direction:column; gap:8px; align-items:center;">
                 <img id="myAvatarDisplay" src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" class="avatar-preview">
-                <span style="font-size:0.75rem; color:#fff;">📷 選擇並更新大頭貼 (系統將自動取代舊頭像)</span>
-                <input type="file" id="avatarFileInput" accept="image/*" onchange="uploadAvatarFile()" style="font-size:0.75rem;">
+                <span style="font-size:0.75rem; color:#fff;">🔗 貼上外部大頭貼網址 (選填，留空將使用預設圖)</span>
+                <input type="text" id="avatarUrlInput" placeholder="請貼上圖片網址 (例如 Imgur 連結)" onchange="previewAvatarUrl()">
             </div>
 
             <div class="grid-2" style="margin-top:6px;">
@@ -234,7 +234,6 @@
     </div>
 
     <script>
-        // 【關鍵修復】：完全移除所有 const supabase 或 let supabase 的重複宣告，統一改用 window.dbClient 避免瀏覽器崩潰
         window.SUPABASE_URL = 'https://hknxdvefnuxgyepuuqra.supabase.co';
         window.SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhrbnhkdmVmbnV4Z3llcHV1cXJhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1MzM0MDAsImV4cCI6MjA5NzEwOTQwMH0.M97OwM_9CrLCrgxbyA6kQs0MLFiRDzyYlvIiGqhBGec';
         
@@ -246,6 +245,7 @@
         let radarMap = null, myMarker = null, radarCircle = null, historyMap = null, historyPolyline = null;
         let mapElements = [], historyMarkers = [], activeChatFriendId = null;
         let isRegister = false, lastNotifiedUsers = new Set();
+        const DEFAULT_AVATAR = 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png';
 
         function showToast(msg, type='info') {
             const t = document.createElement('div'); t.className = `toast ${type}`; t.textContent = msg;
@@ -261,31 +261,10 @@
             return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
         }
 
-        // 大頭貼實體圖檔儲存（自動覆蓋舊圖節節省空間）
-        async function uploadAvatarFile() {
-            const fileInput = document.getElementById('avatarFileInput');
-            if (!fileInput.files || fileInput.files.length === 0) return;
-            const file = fileInput.files[0];
-            
-            const filePath = `${currentUser.id}_avatar.png`;
-            showToast('正在上傳大頭貼並同步雲端節點...', 'info');
-
-            const { data, error } = await window.dbClient.storage
-                .from('avatars')
-                .upload(filePath, file, { cacheControl: '10', upsert: true });
-
-            if (error) {
-                showToast('圖片上傳失敗，請確認 Storage 是否已建立 avatars 公開儲桶: ' + error.message, 'error');
-                return;
-            }
-
-            const { data: urlData } = window.dbClient.storage.from('avatars').getPublicUrl(filePath);
-            const publicUrl = urlData.publicUrl;
-
-            await window.dbClient.from('profiles').update({ avatar_url: publicUrl }).eq('id', currentUser.id);
-            document.getElementById('myAvatarDisplay').src = publicUrl;
-            showToast('📷 大頭貼更新成功，舊頭像已自動釋放覆蓋！', 'success');
-            refreshRadarMarkers();
+        // 大頭貼即時網址預覽功能
+        function previewAvatarUrl() {
+            const url = document.getElementById('avatarUrlInput').value.trim();
+            document.getElementById('myAvatarDisplay').src = url || DEFAULT_AVATAR;
         }
 
         async function handleAuth() {
@@ -313,7 +292,8 @@
             const { data } = await window.dbClient.from('profiles').select('*').eq('id', currentUser.id).single();
             if(data) {
                 document.getElementById('myProfileCategory').value = data.category || '商務交流';
-                if(data.avatar_url) document.getElementById('myAvatarDisplay').src = data.avatar_url;
+                document.getElementById('avatarUrlInput').value = data.avatar_url || '';
+                document.getElementById('myAvatarDisplay').src = data.avatar_url || DEFAULT_AVATAR;
                 document.getElementById('myHasWhat').value = data.has_what || '';
                 document.getElementById('myCanHelp').value = data.can_help || '';
                 document.getElementById('myCanExpose').value = data.can_expose || '';
@@ -330,6 +310,7 @@
         async function saveProfile() {
             const updates = {
                 category: document.getElementById('myProfileCategory').value,
+                avatar_url: document.getElementById('avatarUrlInput').value.trim() || null,
                 has_what: document.getElementById('myHasWhat').value,
                 can_help: document.getElementById('myCanHelp').value,
                 can_expose: document.getElementById('myCanExpose').value,
@@ -426,7 +407,7 @@
 
                     marker.bindPopup(`
                         <div style="color:#333; min-width:180px; text-align:center;">
-                            <img src="${u.avatar_url || 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png'}" class="avatar-preview"><br>
+                            <img src="${u.avatar_url || DEFAULT_AVATAR}" class="avatar-preview"><br>
                             <b>👤 ${u.nickname}</b> (${u.is_online?'🟢上線':'⚪離線'})<br>
                             <span style="font-size:10px; color:#666;">距離: ${dist.toFixed(0)}米</span>
                             <hr style="margin:4px 0; border:0; border-top:1px solid #eee;">
@@ -443,7 +424,7 @@
                 });
             }
 
-            // 固定地點渲染（含標籤功能）
+            // 固定地點渲染
             if (showTargets) {
                 const { data: targets } = await window.dbClient.from('static_targets').select('*');
                 if(targets) {
@@ -487,7 +468,7 @@
                     const statusText = p ? (p.is_online ? '🟢 上線中' : '⚪ 離線') : '⚪ 離線';
                     html += `<div class="list-row">
                         <div style="display:flex; align-items:center; gap:8px;">
-                            <img src="${p?.avatar_url || 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png'}" style="width:30px; height:30px; border-radius:50%;">
+                            <img src="${p?.avatar_url || DEFAULT_AVATAR}" style="width:30px; height:30px; border-radius:50%;">
                             <div><b>${f.friend_nickname}</b> <small style="color:#888;">(${statusText})</small></div>
                         </div>
                         <div>
