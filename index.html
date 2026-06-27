@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>🟢 TribeRadar 終極引力雷達 V4.0 - 商業智能版</title>
+    <title>🟢 TribeRadar 終極引力雷達 V4.1 - 帳戶隔離安全版</title>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -127,7 +127,7 @@
                     </div>
                 </div>
             </div>
-            <div id="geoStatus" style="font-size:0.7rem; font-family:monospace; text-align:center; color:var(--accent);">範圍規範：雷達僅偵測 1500M 內使用者，超出則自動隱形</div>
+            <div id="geoStatus" style="font-size:0.7rem; font-family:monospace; text-align:center; color:var(--accent);">範圍規範：雷達僅偵測 1500M 內對象，超出範圍之使用者將自動隱形</div>
         </div>
 
         <div class="card" style="border: 1px solid var(--dashboard-color);">
@@ -307,7 +307,6 @@
             return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
         }
 
-        // [第11 & 12點] 商業監控指標：異步紀錄點擊特徵
         async function logFeatureClick(featureName) {
             try {
                 const currentMonth = new Date().toISOString().slice(0, 7);
@@ -368,7 +367,6 @@
                     if(res.error) throw res.error;
                     currentUser = res.data.user;
                     
-                    // [第11點] 登入時上線次數自動 +1
                     const pRes = await window.dbClient.from('profiles').select('login_count').eq('id', currentUser.id).single();
                     const nextCount = (pRes.data && pRes.data.login_count ? pRes.data.login_count : 0) + 1;
                     await window.dbClient.from('profiles').update({ is_online: true, login_count: nextCount }).eq('id', currentUser.id);
@@ -409,13 +407,13 @@
                 need_what: document.getElementById('myNeedWhat').value
             };
             await window.dbClient.from('profiles').update(updates).eq('id', currentUser.id);
-            showToast('💾 個人引力設定已同步更新！', 'success'); refreshRadarMarkers();
+            showToast('💾 個人引力設定已同步更新！', 'success'); if(tracking) refreshRadarMarkers();
         }
 
         async function updateShieldStatus() {
             const shielded = document.getElementById('shieldToggle').checked;
             await window.dbClient.from('profiles').update({ is_shielded: shielded }).eq('id', currentUser.id);
-            showToast(shielded ? '🛑 隱形成功，您已從雷達網格中完全屏蔽' : '🟢 屏蔽解除，恢復雷達點位顯示', 'info'); refreshRadarMarkers();
+            showToast(shielded ? '🛑 隱形成功，您已從雷達網格中完全屏蔽' : '🟢 屏蔽解除，恢復雷達點位顯示', 'info'); if(tracking) refreshRadarMarkers();
         }
 
         async function changeTeamStatus(enable) {
@@ -425,7 +423,7 @@
             await window.dbClient.from('profiles').update({ is_teaming: enable, team_name: enable ? title : null, team_category: enable ? cat : null }).eq('id', currentUser.id);
             document.getElementById('myActiveTeamStatus').textContent = enable ? `🟢 隊伍招募中: ${title}` : '當前狀態：未開啟組隊';
             showToast(enable ? '🔥 組隊狀態已掛載於您的移動 GPS 點點上' : '🛑 已關閉組隊招募', 'success');
-            refreshRadarMarkers(); loadTeamNoticeBoard();
+            if(tracking) { refreshRadarMarkers(); loadTeamNoticeBoard(); }
         }
 
         function initRadarMap(lat, lng) {
@@ -443,11 +441,13 @@
             });
         }
 
+        // [修改 2] 只有使用者開啟實時掃描時，才會進行雙方掃描
         function toggleTracking() {
             const btn = document.getElementById('trackBtn'); const sweeper = document.getElementById('sweeperEl');
             if (tracking) {
                 if(watchId) navigator.geolocation.clearWatch(watchId);
                 tracking = false; btn.textContent = '▶️ 啟動雷達實時掃描'; sweeper.style.display = 'none';
+                mapElements.forEach(function(el) { radarMap.removeLayer(el); }); mapElements = [];
             } else {
                 watchId = navigator.geolocation.watchPosition(async function(pos) {
                     currentPosition = { lat: pos.coords.latitude, lng: pos.coords.longitude };
@@ -461,7 +461,7 @@
         }
 
         async function refreshRadarMarkers() {
-            if(!radarMap) return;
+            if(!radarMap || !tracking) return; // 未開掃描時不渲染與計算
             mapElements.forEach(function(el) { radarMap.removeLayer(el); }); mapElements = [];
 
             const selCat = document.getElementById('filterCategory').value;
@@ -470,7 +470,8 @@
             const showTargets = document.getElementById('showTargets').checked;
             const showTeams = document.getElementById('showTeams').checked;
 
-            const fRes = await window.dbClient.from('friendships').select('friend_email');
+            // [修正 1] 僅撈取「當前登入者自己建立的好友」
+            const fRes = await window.dbClient.from('friendships').select('friend_email').eq('user_id', currentUser.id);
             const fEmails = fRes.data ? fRes.data.map(function(f) { return f.friend_email; }) : [];
             const uRes = await window.dbClient.from('profiles').select('*').not('current_lat', 'is', null).eq('is_shielded', false);
             const users = uRes.data;
@@ -524,8 +525,9 @@
                 });
             }
 
+            // [修正 1] 僅載入「當前登入使用者自己新增的固定地點」
             if (showTargets) {
-                const tRes = await window.dbClient.from('static_targets').select('*');
+                const tRes = await window.dbClient.from('static_targets').select('*').eq('user_id', currentUser.id);
                 if(tRes.data) {
                     tRes.data.forEach(function(t) {
                         let tagHtml = '';
@@ -552,23 +554,18 @@
 
         function focusOnMap(lat, lng, name) { if(radarMap) { radarMap.setView([lat, lng], 16); showToast("已連動聚焦至【"+name+"】的位置", 'success'); } }
 
-        // [第11 & 12點] 載入與計算儀表板商業數據指標
         async function loadDashboardMetrics() {
             try {
                 const currentMonth = new Date().toISOString().slice(0, 7);
-                
-                // A. 抓取累計總瀏覽量與Google計費次數
                 const viewsRes = await window.dbClient.from('site_metrics').select('metric_value').eq('metric_key', 'total_page_views').single();
                 document.getElementById('statPageViews').textContent = (viewsRes.data ? viewsRes.data.metric_value : 0);
                 
                 const googleRes = await window.dbClient.from('google_api_usage').select('search_count').eq('current_month', currentMonth).single();
                 document.getElementById('statGoogleSearch').textContent = (googleRes.data ? googleRes.data.search_count : 0);
                 
-                // B. 計算在線會員數
                 const onlineRes = await window.dbClient.from('profiles').select('id', { count: 'exact', head: true }).eq('is_online', true);
                 document.getElementById('statActiveUsers').textContent = onlineRes.count || 0;
 
-                // C. 功能點擊熱排行次數
                 const featRes = await window.dbClient.from('feature_analytics').select('*').eq('current_month', currentMonth).order('click_count', { ascending: false }).limit(3);
                 let featHtml = '';
                 if(featRes.data && featRes.data.length > 0) {
@@ -578,7 +575,6 @@
                 } else { featHtml = "<div>暫無當月統計數據</div>"; }
                 document.getElementById('featureRankList').innerHTML = featHtml;
 
-                // D. 會員活躍度排行（根據上線次數）
                 const actUserRes = await window.dbClient.from('profiles').select('nickname, login_count, is_online').order('login_count', { ascending: false }).limit(5);
                 let userHtml = '';
                 if(actUserRes.data) {
@@ -592,8 +588,10 @@
             } catch(e) { console.error("運營面板數據刷新異常", e); }
         }
 
+        // [修正 1] 僅撈取與「當前帳號（user_id）」綁定關聯的好友
         async function loadFriends() {
-            const fRes = await window.dbClient.from('friendships').select('*');
+            if(!currentUser) return;
+            const fRes = await window.dbClient.from('friendships').select('*').eq('user_id', currentUser.id);
             const pRes = await window.dbClient.from('profiles').select('*');
             const friendships = fRes.data; const profiles = pRes.data;
             let html = '';
@@ -647,11 +645,12 @@
         async function addFriend() {
             const email = document.getElementById('fEmail').value.trim(); if(!email) return;
             const res = await window.dbClient.from('profiles').select('nickname').eq('email', email).single();
+            // 自動綁定目前擁有者的 id
             await window.dbClient.from('friendships').insert({ user_id: currentUser.id, friend_email: email, friend_nickname: (res.data ? res.data.nickname : email), alert_radius: 500 });
-            document.getElementById('fEmail').value = ''; loadFriends(); refreshRadarMarkers();
+            document.getElementById('fEmail').value = ''; loadFriends(); if(tracking) refreshRadarMarkers();
         }
 
-        async function deleteFriend(id) { await window.dbClient.from('friendships').delete().eq('id', id); loadFriends(); refreshRadarMarkers(); }
+        async function deleteFriend(id) { await window.dbClient.from('friendships').delete().eq('id', id); loadFriends(); if(tracking) refreshRadarMarkers(); }
 
         async function addStaticTarget() {
             const name = document.getElementById('tName').value.trim();
@@ -660,11 +659,13 @@
             if(!name || !lat || !lng) { showToast('⚠️ 請先在地圖上點擊選位，或輸入上方 Google 智慧搜尋框', 'error'); return; }
             await window.dbClient.from('static_targets').insert({ user_id: currentUser.id, name: name, lat: parseFloat(lat), lng: parseFloat(lng), tags: [tagValue] });
             document.getElementById('tName').value = ''; document.getElementById('tLat').value = ''; document.getElementById('tLng').value = ''; document.getElementById('geoSearchInput').value = '';
-            showToast('📍 固定目標區域與分類標籤儲存成功！', 'success'); loadStaticTargets(); refreshRadarMarkers();
+            showToast('📍 固定目標區域與分類標籤儲存成功！', 'success'); loadStaticTargets(); if(tracking) refreshRadarMarkers();
         }
 
+        // [修正 1] 僅撈取與「當前帳號（user_id）」綁定關聯的固定地點
         async function loadStaticTargets() {
-            const res = await window.dbClient.from('static_targets').select('*');
+            if(!currentUser) return;
+            const res = await window.dbClient.from('static_targets').select('*').eq('user_id', currentUser.id);
             let html = ''; 
             if(res.data) { 
                 res.data.forEach(function(t) { 
@@ -675,7 +676,7 @@
             document.getElementById('targetList').innerHTML = html;
         }
 
-        async function deleteTarget(id) { await window.dbClient.from('static_targets').delete().eq('id', id); loadStaticTargets(); refreshRadarMarkers(); }
+        async function deleteTarget(id) { await window.dbClient.from('static_targets').delete().eq('id', id); loadStaticTargets(); if(tracking) refreshRadarMarkers(); }
 
         async function queryHistoryLogs() {
             if(!historyMap) { historyMap = L.map('historyMap', { attributionControl: false }).setView([25.0451, 121.4525], 13); L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(historyMap); }
@@ -705,9 +706,7 @@
 
         window.onload = async function() {
             try {
-                // [第12點] 網站總瀏覽量自動 +1 (商業指標統計)
                 await window.dbClient.rpc('increment_page_view');
-                
                 const res = await window.dbClient.auth.getSession();
                 if(res.data && res.data.session && res.data.session.user) { 
                     currentUser = res.data.session.user; 
