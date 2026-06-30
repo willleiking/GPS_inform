@@ -373,7 +373,7 @@
 
     <div class="toast-container" id="toastContainer"></div>
 
-    <!-- ========== 登入頁面 ========== -->
+    <!-- 登入頁面 -->
     <div class="app-container" id="authPage">
         <div class="card" style="text-align:center;">
             <h2 style="color:var(--accent)">🟢 TribeRadar V5.0</h2>
@@ -388,7 +388,7 @@
         </div>
     </div>
 
-    <!-- ========== 主面板 ========== -->
+    <!-- 主面板 -->
     <div class="app-container hidden" id="mainApp">
         <div class="tab-nav no-print">
             <button class="tab-btn active" onclick="switchTab('radar')">📍 雷達</button>
@@ -397,7 +397,7 @@
             <button class="tab-btn" onclick="switchTab('settings')">⚙️ 設定</button>
         </div>
 
-        <!-- ===== 雷達面板 ===== -->
+        <!-- 雷達面板 -->
         <div id="radarTab">
             <div class="card radar-panel">
                 <div class="radar-outer">
@@ -412,8 +412,10 @@
                 </div>
                 <div class="grid-2">
                     <select id="filterCategory" onchange="refreshRadarMarkers()">
-                        <option value="全類別">全類別</option><option value="吃貨團">吃貨團</option>
-                        <option value="健身團">健身團</option><option value="商務交流">商務交流</option>
+                        <option value="全類別">全類別</option>
+                        <option value="吃貨團">吃貨團</option>
+                        <option value="健身團">健身團</option>
+                        <option value="商務交流">商務交流</option>
                     </select>
                     <div style="font-size:0.7rem; display:flex; flex-direction:column; gap:2px;">
                         <label><input type="checkbox" id="showStrangers" checked onchange="refreshRadarMarkers()"> 陌生人</label>
@@ -424,7 +426,7 @@
             </div>
         </div>
 
-        <!-- ===== 組隊面板 ===== -->
+        <!-- 組隊面板 -->
         <div id="teamTab" class="hidden">
             <div class="card" style="border:2px dashed var(--team-color);">
                 <div class="card-title" style="color:var(--team-color);">🛡️ 當前隊伍</div>
@@ -458,7 +460,7 @@
             </div>
         </div>
 
-        <!-- ===== 歷史分析面板 ===== -->
+        <!-- 歷史分析面板 -->
         <div id="historyTab" class="hidden">
             <div id="printArea">
                 <div class="card no-print">
@@ -488,7 +490,7 @@
             </div>
         </div>
 
-        <!-- ===== 設定面板 ===== -->
+        <!-- 設定面板 -->
         <div id="settingsTab" class="hidden">
             <div class="card">
                 <div class="card-title">🚀 個人檔案</div>
@@ -528,8 +530,14 @@
         const SUPABASE_URL = 'https://hknxdvefnuxgyepuuqra.supabase.co';
         const SUPABASE_KEY =
             'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhrbnhkdmVmbnV4Z3llcHV1cXJhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1MzM0MDAsImV4cCI6MjA5NzEwOTQwMH0.M97OwM_9CrLCrgxbyA6kQs0MLFiRDzyYlvIiGqhBGec';
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+        // 避免重複宣告
+        if (typeof window.dbClient === 'undefined') {
+            window.dbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        }
+        const supabase = window.dbClient;
+
+        // ==================== 全域變數 ====================
         let currentUser = null,
             tracking = false,
             watchId = null,
@@ -543,7 +551,9 @@
         let mapElements = [],
             isRegister = false;
         const RECORD_INTERVAL = 30000;
+        const DEFAULT_AVATAR = 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png';
 
+        // ==================== 工具函數 ====================
         function showToast(msg, type = 'info') {
             const t = document.createElement('div');
             t.className = `toast ${type}`;
@@ -561,26 +571,33 @@
             return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
         }
 
+        // ==================== Tab 切換 ====================
         function switchTab(tab) {
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             ['radarTab', 'teamTab', 'historyTab', 'settingsTab'].forEach(id => document.getElementById(id).classList.add(
                 'hidden'));
-            if (tab === 'radar') { document.querySelector('.tab-btn:nth-child(1)').classList.add('active');
-                document.getElementById('radarTab').classList.remove('hidden'); } else if (tab === 'team') { document
-                    .querySelector('.tab-btn:nth-child(2)').classList.add('active');
+            if (tab === 'radar') {
+                document.querySelector('.tab-btn:nth-child(1)').classList.add('active');
+                document.getElementById('radarTab').classList.remove('hidden');
+            } else if (tab === 'team') {
+                document.querySelector('.tab-btn:nth-child(2)').classList.add('active');
                 document.getElementById('teamTab').classList.remove('hidden');
                 refreshPartyWindow();
                 loadPartyChatMessages();
                 loadPendingRequests();
-                loadTeamNoticeBoard(); } else if (tab === 'history') { document.querySelector('.tab-btn:nth-child(3)')
-                    .classList.add('active');
-                document.getElementById('historyTab').classList.remove('hidden'); const now = new Date();
+                loadTeamNoticeBoard();
+            } else if (tab === 'history') {
+                document.querySelector('.tab-btn:nth-child(3)').classList.add('active');
+                document.getElementById('historyTab').classList.remove('hidden');
+                const now = new Date();
                 document.getElementById('endDate').value = now.toISOString().split('T')[0];
                 document.getElementById('startDate').value = new Date(now - 7 * 86400000).toISOString().split('T')[0];
-                setTimeout(initHistoryMap, 300); } else if (tab === 'settings') { document.querySelector(
-                    '.tab-btn:nth-child(4)').classList.add('active');
+                setTimeout(initHistoryMap, 300);
+            } else if (tab === 'settings') {
+                document.querySelector('.tab-btn:nth-child(4)').classList.add('active');
                 document.getElementById('settingsTab').classList.remove('hidden');
-                loadSettingsData(); }
+                loadSettingsData();
+            }
         }
 
         // ==================== 認證 ====================
@@ -607,9 +624,7 @@
                     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
                     if (error) throw error;
                     currentUser = data.user;
-                    await supabase.from('profiles').update({ is_online: true, login_count: (await supabase.from(
-                        'profiles').select('login_count').eq('id', currentUser.id).single()).data?.login_count +
-                        1 || 1 }).eq('id', currentUser.id);
+                    await supabase.from('profiles').upsert({ id: currentUser.id, email: email, is_online: true }, { onConflict: 'id' });
                     enterMainApp();
                 }
             } catch (e) { showToast('❌ ' + e.message, 'error'); }
@@ -617,8 +632,9 @@
 
         async function handleLogout() {
             if (tracking) stopTracking();
-            if (currentUser) await supabase.from('profiles').update({ is_online: false, current_team_id: null, is_teaming: false,
-                team_name: null }).eq('id', currentUser.id);
+            if (currentUser) {
+                await supabase.from('profiles').update({ is_online: false }).eq('id', currentUser.id);
+            }
             await supabase.auth.signOut();
             currentUser = null;
             document.getElementById('mainApp').classList.add('hidden');
@@ -691,9 +707,6 @@
             const { data: users } = await supabase.from('profiles').select('*').not('current_lat', 'is', null).eq(
                 'is_shielded', false);
             if (!users) return;
-            const myTeamRes = await supabase.from('profiles').select('current_team_id').eq('id', currentUser.id).single();
-            const myTeamId = myTeamRes.data?.current_team_id;
-
             users.forEach(u => {
                 if (u.id === currentUser.id) return;
                 const dist = calcDistance(currentPosition.lat, currentPosition.lng, u.current_lat, u.current_lng);
@@ -705,20 +718,19 @@
                 const marker = L.marker([u.current_lat, u.current_lng], { icon: L.divIcon({ html, iconSize: [16,
                         16] }) }).addTo(radarMap);
                 marker.bindPopup(
-                    `<div style="color:#333;text-align:center;"><b>${u.nickname}</b><br>${isTeaming?`🔥 ${u.team_name||'招募中'}<br><button class="btn-action" onclick="requestJoinTeam('${u.id}','${u.nickname}')">📩 申請加入</button>`:'散人'}</div>`
+                    `<div style="color:#333;text-align:center;"><b>${u.nickname}</b><br>${isTeaming?`🔥 ${u.team_name||'招募中'}<br><button onclick="requestJoinTeam('${u.id}','${u.nickname}')" style="background:#e74c3c;color:#fff;padding:4px 8px;border:none;border-radius:4px;cursor:pointer;">📩 申請加入</button>`:'散人'}</div>`
                     );
                 mapElements.push(marker);
             });
         }
 
-        // ==================== 組隊系統（修復版）====================
+        // ==================== 組隊系統 ====================
         async function changeTeamStatus(enable) {
             const title = document.getElementById('teamTitle').value.trim();
-            const cat = document.getElementById('teamCategory').value;
             if (enable && !title) { showToast('⚠️ 請輸入組隊名稱', 'error'); return; }
             if (enable) {
-                await supabase.from('profiles').update({ is_teaming: true, team_name: title, team_category: cat,
-                    current_team_id: currentUser.id }).eq('id', currentUser.id);
+                await supabase.from('profiles').update({ is_teaming: true, team_name: title, team_category: document
+                        .getElementById('teamCategory').value, current_team_id: currentUser.id }).eq('id', currentUser.id);
                 document.getElementById('myActiveTeamStatus').textContent = `🟢 招募中: ${title}`;
                 showToast('🔥 組隊已建立！', 'success');
             } else {
@@ -741,29 +753,24 @@
             if (!currentUser) return;
             const { data: existing } = await supabase.from('team_requests').select('*').eq('team_leader_id', leaderId).eq(
                 'applicant_id', currentUser.id).single();
-            if (existing) { showToast('⚠️ 已送出申請，請等待隊長審核', 'error'); return; }
+            if (existing) { showToast('⚠️ 已送出申請', 'error'); return; }
             await supabase.from('team_requests').insert({ team_leader_id: leaderId, applicant_id: currentUser.id,
                 status: 'pending' });
-            showToast(`📩 已向 ${leaderName} 送出加入請求！`, 'match');
+            showToast(`📩 已向 ${leaderName} 送出申請！`, 'match');
         }
 
         async function loadPendingRequests() {
             if (!currentUser) return;
-            const { data: requests } = await supabase.from('team_requests').select(
-                'id, applicant_id, status, profiles!team_requests_applicant_id_fkey(nickname)').eq('team_leader_id',
-                currentUser.id).eq('status', 'pending');
+            const { data: requests } = await supabase.from('team_requests').select('id, applicant_id, status').eq(
+                'team_leader_id', currentUser.id).eq('status', 'pending');
             const container = document.getElementById('pendingRequests');
             if (!requests?.length) { container.innerHTML =
                 '<div style="font-size:0.75rem;color:#888;text-align:center;">無待審核請求</div>'; return; }
-            container.innerHTML = requests.map(r => `
-                <div class="list-row">
-                    <span>👤 ${r.profiles?.nickname||'未知'}</span>
-                    <div>
-                        <button class="btn-game" style="background:#27ae60;color:#fff;" onclick="handleTeamRequest('${r.id}','approved')">✅ 同意</button>
-                        <button class="btn-game" style="background:#c0392b;color:#fff;" onclick="handleTeamRequest('${r.id}','rejected')">❌ 拒絕</button>
-                    </div>
-                </div>
-            `).join('');
+            const { data: profiles } = await supabase.from('profiles').select('id,nickname');
+            container.innerHTML = requests.map(r => {
+                const applicant = profiles?.find(p => p.id === r.applicant_id);
+                return `<div class="list-row"><span>👤 ${applicant?.nickname||'未知'}</span><div><button class="btn-game" style="background:#27ae60;color:#fff;" onclick="handleTeamRequest('${r.id}','approved')">✅ 同意</button><button class="btn-game" style="background:#c0392b;color:#fff;" onclick="handleTeamRequest('${r.id}','rejected')">❌ 拒絕</button></div></div>`;
+            }).join('');
         }
 
         async function handleTeamRequest(requestId, status) {
@@ -809,15 +816,13 @@
             const { data: my } = await supabase.from('profiles').select('current_team_id').eq('id', currentUser.id).single();
             const tId = my?.current_team_id;
             const box = document.getElementById('partyChatBox');
-            if (!tId) { box.innerHTML =
-                '<div class="msg-line msg-system">請先加入組隊</div>'; return; }
+            if (!tId) { box.innerHTML = '<div class="msg-line msg-system">請先加入組隊</div>'; return; }
             const { data: msgs } = await supabase.from('friend_messages').select('*').eq('receiver_id', tId).order(
                 'created_at', { ascending: true }).limit(50);
             const { data: profiles } = await supabase.from('profiles').select('id,nickname');
             box.innerHTML = (msgs || []).map(m => {
                 const sender = profiles?.find(p => p.id === m.sender_id);
-                const cls = m.sender_id === currentUser.id ? 'msg-me' : 'msg-other';
-                return `<div class="msg-line ${cls}"><b>${sender?.nickname||'未知'}:</b> ${m.message}</div>`;
+                return `<div class="msg-line ${m.sender_id===currentUser.id?'msg-me':'msg-other'}"><b>${sender?.nickname||'未知'}:</b> ${m.message}</div>`;
             }).join('') || '<div class="msg-line msg-system">尚無訊息</div>';
             box.scrollTop = box.scrollHeight;
         }
@@ -834,8 +839,7 @@
         }
 
         async function loadTeamNoticeBoard() {
-            const { data: teams } = await supabase.from('profiles').select('*').eq('is_teaming', true).eq('is_shielded',
-            false);
+            const { data: teams } = await supabase.from('profiles').select('*').eq('is_teaming', true);
             const container = document.getElementById('teamNoticeBoard');
             if (!teams?.length) { container.innerHTML =
                 '<div style="font-size:0.75rem;color:#888;text-align:center;">附近無組隊</div>'; return; }
@@ -844,6 +848,83 @@
                     121);
                 return `<div class="list-row"><span>🔥 ${t.team_name} (${(dist/1000).toFixed(1)}km)</span><button class="btn btn-outline" style="padding:4px 8px;" onclick="requestJoinTeam('${t.id}','${t.nickname}')">申請</button></div>`;
             }).join('');
+        }
+
+        // ==================== 設定 ====================
+        async function loadProfileData() {
+            const { data } = await supabase.from('profiles').select('*').eq('id', currentUser.id).single();
+            if (!data) return;
+            document.getElementById('avatarUrlInput').value = data.avatar_url || '';
+            document.getElementById('myAvatarDisplay').src = data.avatar_url || DEFAULT_AVATAR;
+            document.getElementById('myHasWhat').value = data.has_what || '';
+            document.getElementById('myMatchDemand').value = data.need_what || '';
+            if (data.is_teaming) document.getElementById('myActiveTeamStatus').textContent =
+                `🟢 招募中: ${data.team_name}`;
+        }
+
+        async function saveProfile() {
+            await supabase.from('profiles').update({ avatar_url: document.getElementById('avatarUrlInput').value,
+                has_what: document.getElementById('myHasWhat').value, need_what: document.getElementById(
+                    'myMatchDemand').value }).eq('id', currentUser.id);
+            showToast('💾 已儲存', 'success');
+        }
+
+        async function addFriend() {
+            const email = document.getElementById('fEmail').value.trim();
+            if (!email) return;
+            await supabase.from('friendships').insert({ user_id: currentUser.id, friend_email: email, friend_nickname: email });
+            document.getElementById('fEmail').value = '';
+            showToast('✅ 已綁定', 'success');
+            loadSettingsData();
+        }
+
+        async function addStaticTarget() {
+            const name = document.getElementById('tName').value.trim();
+            if (!name) return;
+            await supabase.from('static_targets').insert({ user_id: currentUser.id, name, lat: currentPosition.lat,
+                lng: currentPosition.lng });
+            showToast('✅ 已存入', 'success');
+            loadSettingsData();
+        }
+
+        async function loadSettingsData() {
+            const { data: friends } = await supabase.from('friendships').select('*').eq('user_id', currentUser.id);
+            document.getElementById('friendContainer').innerHTML = (friends || []).map(f =>
+                `<div class="list-row"><span>🧑 ${f.friend_nickname}</span><button class="btn btn-danger" onclick="supabase.from('friendships').delete().eq('id','${f.id}').then(()=>loadSettingsData())">✕</button></div>`
+            ).join('') || '<div style="color:#888;">無好友</div>';
+            const { data: targets } = await supabase.from('static_targets').select('*').eq('user_id', currentUser.id);
+            document.getElementById('targetList').innerHTML = (targets || []).map(t =>
+                `<div class="list-row"><span>📍 ${t.name}</span><button class="btn btn-danger" onclick="supabase.from('static_targets').delete().eq('id','${t.id}').then(()=>loadSettingsData())">✕</button></div>`
+            ).join('') || '<div style="color:#888;">無定點</div>';
+            loadEmailSettingsFromStorage();
+        }
+
+        function saveEmailSettings() {
+            const s = { publicKey: document.getElementById('emailjsPublicKey').value, serviceId: document.getElementById(
+                    'emailjsServiceId').value, templateId: document.getElementById('emailjsTemplateId').value,
+                defaultRecipient: document.getElementById('defaultRecipient').value };
+            localStorage.setItem('emailjs_settings', JSON.stringify(s));
+            if (s.publicKey && window.emailjs) window.emailjs.init(s.publicKey);
+            showToast('💾 已儲存', 'success');
+        }
+
+        function loadEmailSettingsFromStorage() {
+            const s = JSON.parse(localStorage.getItem('emailjs_settings') || '{}');
+            if (s.publicKey) document.getElementById('emailjsPublicKey').value = s.publicKey;
+            if (s.serviceId) document.getElementById('emailjsServiceId').value = s.serviceId;
+            if (s.templateId) document.getElementById('emailjsTemplateId').value = s.templateId;
+            if (s.defaultRecipient) document.getElementById('defaultRecipient').value = s.defaultRecipient;
+        }
+
+        function testEmailConfig() {
+            const pk = document.getElementById('emailjsPublicKey').value;
+            const sid = document.getElementById('emailjsServiceId').value;
+            const tid = document.getElementById('emailjsTemplateId').value;
+            const rec = document.getElementById('defaultRecipient').value;
+            if (!pk || !sid || !tid || !rec) { showToast('⚠️ 請完整填寫', 'error'); return; }
+            window.emailjs.init(pk);
+            window.emailjs.send(sid, tid, { to_email: rec, location_name: '測試', distance_m: '50m' }).then(() => showToast(
+                '✅ 已發送', 'success')).catch(e => showToast('❌ ' + e.message, 'error'));
         }
 
         // ==================== 歷史分析 ====================
@@ -940,82 +1021,6 @@
 
         function printReport() { window.print(); }
 
-        // ==================== 設定 ====================
-        async function loadProfileData() {
-            const { data } = await supabase.from('profiles').select('*').eq('id', currentUser.id).single();
-            if (!data) return;
-            document.getElementById('avatarUrlInput').value = data.avatar_url || '';
-            document.getElementById('myAvatarDisplay').src = data.avatar_url || DEFAULT_AVATAR;
-            document.getElementById('myHasWhat').value = data.has_what || '';
-            document.getElementById('myMatchDemand').value = data.need_what || '';
-            if (data.is_teaming) document.getElementById('myActiveTeamStatus').textContent = `🟢 招募中: ${data.team_name}`;
-        }
-
-        async function saveProfile() {
-            await supabase.from('profiles').update({ avatar_url: document.getElementById('avatarUrlInput').value,
-                has_what: document.getElementById('myHasWhat').value, need_what: document.getElementById(
-                    'myMatchDemand').value }).eq('id', currentUser.id);
-            showToast('💾 已儲存', 'success');
-        }
-
-        async function addFriend() {
-            const email = document.getElementById('fEmail').value.trim();
-            if (!email) return;
-            await supabase.from('friendships').insert({ user_id: currentUser.id, friend_email: email, friend_nickname: email });
-            document.getElementById('fEmail').value = '';
-            showToast('✅ 已綁定', 'success');
-            loadSettingsData();
-        }
-
-        async function addStaticTarget() {
-            const name = document.getElementById('tName').value.trim();
-            if (!name) return;
-            await supabase.from('static_targets').insert({ user_id: currentUser.id, name, lat: currentPosition.lat,
-                lng: currentPosition.lng });
-            showToast('✅ 已存入', 'success');
-            loadSettingsData();
-        }
-
-        async function loadSettingsData() {
-            const { data: friends } = await supabase.from('friendships').select('*').eq('user_id', currentUser.id);
-            document.getElementById('friendContainer').innerHTML = (friends || []).map(f =>
-                `<div class="list-row"><span>🧑 ${f.friend_nickname}</span><button class="btn btn-danger" onclick="supabase.from('friendships').delete().eq('id','${f.id}').then(()=>loadSettingsData())">✕</button></div>`
-            ).join('') || '<div style="color:#888;">無好友</div>';
-            const { data: targets } = await supabase.from('static_targets').select('*').eq('user_id', currentUser.id);
-            document.getElementById('targetList').innerHTML = (targets || []).map(t =>
-                `<div class="list-row"><span>📍 ${t.name}</span><button class="btn btn-danger" onclick="supabase.from('static_targets').delete().eq('id','${t.id}').then(()=>loadSettingsData())">✕</button></div>`
-            ).join('') || '<div style="color:#888;">無定點</div>';
-            loadEmailSettingsFromStorage();
-        }
-
-        function saveEmailSettings() {
-            const s = { publicKey: document.getElementById('emailjsPublicKey').value, serviceId: document.getElementById(
-                    'emailjsServiceId').value, templateId: document.getElementById('emailjsTemplateId').value,
-                defaultRecipient: document.getElementById('defaultRecipient').value };
-            localStorage.setItem('emailjs_settings', JSON.stringify(s));
-            if (s.publicKey && window.emailjs) window.emailjs.init(s.publicKey);
-            showToast('💾 已儲存', 'success');
-        }
-
-        function loadEmailSettingsFromStorage() {
-            const s = JSON.parse(localStorage.getItem('emailjs_settings') || '{}');
-            if (s.publicKey) document.getElementById('emailjsPublicKey').value = s.publicKey;
-            if (s.serviceId) document.getElementById('emailjsServiceId').value = s.serviceId;
-            if (s.templateId) document.getElementById('emailjsTemplateId').value = s.templateId;
-            if (s.defaultRecipient) document.getElementById('defaultRecipient').value = s.defaultRecipient;
-        }
-
-        function testEmailConfig() {
-            const pk = document.getElementById('emailjsPublicKey').value;
-            const sid = document.getElementById('emailjsServiceId').value;
-            const tid = document.getElementById('emailjsTemplateId').value;
-            const rec = document.getElementById('defaultRecipient').value;
-            if (!pk || !sid || !tid || !rec) { showToast('⚠️ 請完整填寫', 'error'); return; }
-            window.emailjs.init(pk);
-            window.emailjs.send(sid, tid, { to_email: rec, location_name: '測試', distance_m: '50m' }).then(() => showToast(
-                '✅ 已發送', 'success')).catch(e => showToast('❌ ' + e.message, 'error'));
-        }
-
         function initGoogleAutocomplete() {
             const input = document.getElementById('geoSearchInput');
             if (typeof google === 'undefined' || !input) return;
@@ -1029,42 +1034,26 @@
             });
         }
 
-        // ==================== 初始化（修復版）====================
+        // ==================== 初始化 ====================
         window.onload = async function() {
             const statusEl = document.getElementById('connStatus');
-            
             try {
-                // 先測試基本連線
                 const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-                
                 if (sessionError) {
-                    console.error('Session 錯誤:', sessionError);
                     statusEl.textContent = '🔴 連線失敗：' + sessionError.message;
                     statusEl.style.color = '#e74c3c';
                     return;
                 }
-                
-                // 嘗試呼叫 RPC（即使失敗也不影響登入）
-                try {
-                    await supabase.rpc('increment_page_view');
-                    console.log('✅ RPC 呼叫成功');
-                } catch (rpcErr) {
-                    console.warn('⚠️ RPC 呼叫失敗（不影響登入）:', rpcErr.message);
-                }
-                
-                // 檢查是否已登入
+                try { await supabase.rpc('increment_page_view'); } catch (rpcErr) {}
                 if (sessionData?.session?.user) {
                     currentUser = sessionData.session.user;
-                    statusEl.textContent = '🟢 已連線，正在進入...';
-                    statusEl.style.color = '#2ecc71';
+                    statusEl.textContent = '🟢 已連線，進入中...';
                     enterMainApp();
                 } else {
-                    statusEl.textContent = '🟢 主機已就緒，請登入';
+                    statusEl.textContent = '🟢 主機就緒，請登入';
                     statusEl.style.color = '#2ecc71';
                 }
-                
             } catch (e) {
-                console.error('初始化錯誤:', e);
                 statusEl.textContent = '🔴 初始化失敗：' + e.message;
                 statusEl.style.color = '#e74c3c';
             }
