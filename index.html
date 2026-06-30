@@ -472,7 +472,26 @@
                     const sender = profiles.data?.find(x => x.id === m.sender_id);
                     const name = sender ? sender.nickname : '未知組員';
                     let side = m.sender_id === currentUser.id ? 'msg-me' : 'msg-other';
-                    html += `<div class='msg-line ${side}'><b>[${name}]:</b> ${m.message}</div>`;
+                    const timeStr = new Date(m.created_at)
+                        .toLocaleTimeString('zh-TW',{
+                            hour:'2-digit',
+                            minute:'2-digit',
+                            hour12:false
+                        });
+                    
+                    html += `
+                    <div class="msg-line ${side}">
+                        <b>${name}</b>
+                        <span style="
+                            font-size:11px;
+                            opacity:.65;
+                            margin:0 4px;
+                        ">
+                            ${timeStr}
+                        </span>
+                        ：${m.message}
+                    </div>
+                    `;
                 });
             }
             box.innerHTML = html || `<div class='msg-line msg-system'>✨ 組隊頻道初始化成功，快跟隊友打招呼吧！</div>`;
