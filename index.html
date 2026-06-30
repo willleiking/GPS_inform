@@ -3,13 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>🟢 TribeRadar 終極引力雷達 V4.7 - 線上遊戲組隊完全體</title>
+    <title>🟢 TribeRadar V5.0 - 終極整合完全體</title>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js">
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js">
+    </script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    
-    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyACxMPE_nMWpxsNNB_fW2TplflJJSI6sOs&libraries=places&language=zh-TW"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
+    </script>
+    <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js">
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js">
+    </script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyACxMPE_nMWpxsNNB_fW2TplflJJSI6sOs&libraries=places&language=zh-TW">
+    </script>
 
     <style>
         :root {
@@ -18,7 +26,7 @@
             --surface2: #1f2630;
             --border: #2ecc7130;
             --text: #95a5a6;
-            --accent: #2ecc71; 
+            --accent: #2ecc71;
             --friend-color: #3498db;
             --stranger-color: #f1c40f;
             --target-color: #2ecc71;
@@ -26,618 +34,1009 @@
             --dashboard-color: #9b59b6;
             --radius: 12px;
         }
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); padding: 10px; display: flex; flex-direction: column; align-items: center; }
-        .app-container { width: 100%; max-width: 500px; display: flex; flex-direction: column; gap: 12px; }
-        .card { background: var(--surface); border-radius: var(--radius); border: 1px solid var(--border); padding: 16px; display: flex; flex-direction: column; gap: 12px; }
-        .card-title { font-size: 0.95rem; font-weight: 700; color: #fff; display: flex; align-items: center; justify-content: space-between; }
-        
-        .btn { padding: 12px; border-radius: 20px; border: none; font-weight: 700; font-size: 0.85rem; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.2s; }
-        .btn-primary { background: var(--accent); color: #000; width: 100%; }
-        .btn-outline { background: transparent; color: var(--accent); border: 1px solid var(--accent); border-radius: 20px; padding: 6px 12px; font-size: 0.8rem; }
-        .btn-danger { background: transparent; color: #e74c3c; border: 1px solid #e74c3c; border-radius: 50%; width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; padding: 0; cursor: pointer; }
-        .btn-action { background: var(--team-color); color: #fff; padding: 4px 8px; font-size: 0.75rem; border-radius: 4px; margin-top: 5px; width: 100%; cursor: pointer; border: none; }
-        .btn-game { padding: 2px 6px; font-size: 0.7 ceramic; border-radius: 4px; border: none; cursor: pointer; font-weight: bold; margin-left: 4px; }
-        
-        select, input, textarea { background: var(--surface2); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 10px; color: #fff; outline: none; font-size: 0.85rem; width: 100%; }
-        textarea { resize: none; height: 60px; }
-
-        /* 雷達盤面 */
-        .radar-panel { position: relative; background: #070a0e; padding: 0; overflow: hidden; border-radius: var(--radius); border: 1px solid var(--border); }
-        .radar-outer { position: relative; width: 100%; padding-bottom: 100%; }
-        #radarMap { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
-        .radar-sweeper { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 2; pointer-events: none; border-radius: 50%; background: conic-gradient(from 0deg, rgba(46,204,113,0.12) 0deg, rgba(46,204,113,0) 90deg, transparent 360deg); animation: radar-sweep 4s infinite linear; display: none; }
-        @keyframes radar-sweep { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-
-        /* 列表與對話 */
-        .chat-box { background: var(--surface2); border-radius: 8px; height: 180px; overflow-y: auto; padding: 10px; font-size: 0.85rem; display: flex; flex-direction: column; gap: 6px; }
-        .msg-line { padding: 6px 10px; border-radius: 6px; max-width: 80%; word-break: break-all; font-size: 0.8rem; }
-        .msg-me { background: var(--accent); color: #000; align-self: flex-end; }
-        .msg-other { background: #2c3e50; color: #fff; align-self: flex-start; }
-        .msg-system { background: rgba(231, 76, 60, 0.1); color: #e74c3c; align-self: center; text-align: center; width: 100%; max-width: 100%; font-size: 0.75rem; border: 1px dashed rgba(231,76,60,0.3); }
-
-        .list-row { background: var(--surface2); border-radius: 8px; padding: 10px; display: flex; align-items: center; justify-content: space-between; font-size: 0.85rem; }
-        .avatar-preview { width: 55px; height: 55px; border-radius: 50%; object-fit: cover; border: 2px solid var(--accent); margin: 0 auto; display: block; background: #222; }
-        .tag-badge { background: rgba(46,204,113,0.15); color: var(--accent); padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; margin-right: 4px; }
-        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-        .hidden { display: none !important; }
-        
-        .toast-container { position: fixed; top: 16px; left: 50%; transform: translateX(-50%); z-index: 9999; display: flex; flex-direction: column; gap: 6px; width: 90%; max-width: 400px; }
-        .toast { padding: 12px; border-radius: 8px; font-size: 0.8rem; text-align: center; color: #fff; font-weight: bold; }
-        .toast.match { background: #e67e22; box-shadow: 0 0 15px #e67e22; border: 2px solid #fff; }
-        .toast.success { background: #27ae60; }
-        .toast.error { background: #c0392b; }
-        #historyMap { width: 100%; height: 220px; border-radius: 8px; }
-
-        .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; text-align: center; }
-        .stat-box { background: var(--surface2); padding: 8px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.05); }
-        .stat-num { font-size: 1.2rem; font-weight: bold; color: #fff; margin-top: 2px; }
-
-        /* RO風格組隊視窗 */
-        .party-member-row { display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.03); border-left: 4px solid var(--team-color); padding: 8px; border-radius: 4px; margin-bottom: 4px; font-size: 0.8rem; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .app-container {
+            width: 100%;
+            max-width: 500px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .card {
+            background: var(--surface);
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .card-title {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .btn {
+            padding: 12px;
+            border-radius: 20px;
+            border: none;
+            font-weight: 700;
+            font-size: 0.85rem;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            transition: 0.2s;
+        }
+        .btn-primary {
+            background: var(--accent);
+            color: #000;
+            width: 100%;
+        }
+        .btn-outline {
+            background: transparent;
+            color: var(--accent);
+            border: 1px solid var(--accent);
+            border-radius: 20px;
+            padding: 6px 12px;
+            font-size: 0.8rem;
+        }
+        .btn-danger {
+            background: transparent;
+            color: #e74c3c;
+            border: 1px solid #e74c3c;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            cursor: pointer;
+        }
+        .btn-game {
+            padding: 2px 6px;
+            font-size: 0.7rem;
+            border-radius: 4px;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            margin-left: 4px;
+        }
+        select,
+        input,
+        textarea {
+            background: var(--surface2);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 10px;
+            color: #fff;
+            outline: none;
+            font-size: 0.85rem;
+            width: 100%;
+        }
+        textarea {
+            resize: none;
+            height: 60px;
+        }
+        .tab-nav {
+            display: flex;
+            gap: 6px;
+            background: var(--surface);
+            border-radius: var(--radius);
+            padding: 4px;
+            border: 1px solid var(--border);
+        }
+        .tab-btn {
+            flex: 1;
+            padding: 8px;
+            border-radius: 8px;
+            background: transparent;
+            color: var(--text);
+            font-weight: 700;
+            font-size: 0.7rem;
+            text-align: center;
+            cursor: pointer;
+            border: none;
+        }
+        .tab-btn.active {
+            background: var(--accent);
+            color: #000;
+        }
+        .radar-panel {
+            position: relative;
+            background: #070a0e;
+            padding: 0;
+            overflow: hidden;
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+        }
+        .radar-outer {
+            position: relative;
+            width: 100%;
+            padding-bottom: 100%;
+        }
+        #radarMap {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+        .radar-sweeper {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 2;
+            pointer-events: none;
+            border-radius: 50%;
+            background: conic-gradient(from 0deg, rgba(46, 204, 113, 0.12) 0deg, rgba(46, 204, 113, 0) 90deg, transparent 360deg);
+            animation: radar-sweep 4s infinite linear;
+            display: none;
+        }
+        @keyframes radar-sweep {
+            from {
+                transform: rotate(0deg);
+            }
+            to {
+                transform: rotate(360deg);
+            }
+        }
+        .chat-box {
+            background: var(--surface2);
+            border-radius: 8px;
+            height: 140px;
+            overflow-y: auto;
+            padding: 10px;
+            font-size: 0.85rem;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .msg-line {
+            padding: 6px 10px;
+            border-radius: 6px;
+            max-width: 80%;
+            word-break: break-all;
+            font-size: 0.8rem;
+        }
+        .msg-me {
+            background: var(--accent);
+            color: #000;
+            align-self: flex-end;
+        }
+        .msg-other {
+            background: #2c3e50;
+            color: #fff;
+            align-self: flex-start;
+        }
+        .msg-system {
+            background: rgba(231, 76, 60, 0.1);
+            color: #e74c3c;
+            align-self: center;
+            text-align: center;
+            width: 100%;
+            max-width: 100%;
+            font-size: 0.75rem;
+            border: 1px dashed rgba(231, 76, 60, 0.3);
+        }
+        .list-row {
+            background: var(--surface2);
+            border-radius: 8px;
+            padding: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 0.85rem;
+        }
+        .avatar-preview {
+            width: 55px;
+            height: 55px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid var(--accent);
+            margin: 0 auto;
+            display: block;
+            background: #222;
+        }
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+        .hidden {
+            display: none !important;
+        }
+        .map-container {
+            height: 280px;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+        .stat-item {
+            background: var(--surface2);
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--accent);
+        }
+        .stat-label {
+            font-size: 0.65rem;
+            color: var(--text);
+        }
+        .chart-container {
+            height: 200px;
+        }
+        .toast-container {
+            position: fixed;
+            top: 16px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            width: 90%;
+            max-width: 400px;
+        }
+        .toast {
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            text-align: center;
+            color: #fff;
+            font-weight: bold;
+        }
+        .toast.match {
+            background: #e67e22;
+            box-shadow: 0 0 15px #e67e22;
+            border: 2px solid #fff;
+        }
+        .toast.success {
+            background: #27ae60;
+        }
+        .toast.error {
+            background: #c0392b;
+        }
+        .party-member-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(255, 255, 255, 0.03);
+            border-left: 4px solid var(--team-color);
+            padding: 8px;
+            border-radius: 4px;
+            margin-bottom: 4px;
+            font-size: 0.8rem;
+        }
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .input-group label {
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: var(--text);
+            text-transform: uppercase;
+        }
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            #printArea,
+            #printArea * {
+                visibility: visible;
+            }
+            #printArea {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+            }
+            .no-print {
+                display: none !important;
+            }
+        }
     </style>
 </head>
 <body>
 
     <div class="toast-container" id="toastContainer"></div>
 
+    <!-- ========== 登入頁面 ========== -->
     <div class="app-container" id="authPage">
         <div class="card" style="text-align:center;">
-            <h2 style="color:var(--accent)">🟢 TribeRadar 商務引力雷達</h2>
+            <h2 style="color:var(--accent)">🟢 TribeRadar V5.0</h2>
             <p style="font-size:0.75rem; color:var(--accent);" id="connStatus">探索主機連線中...</p>
         </div>
         <div class="card">
             <input type="email" id="authEmail" placeholder="Email 帳號">
             <input type="password" id="authPassword" placeholder="密碼 (至少6碼)">
-            <div class="hidden" id="nickGroup"><input type="text" id="authNickname" placeholder="設定探索暱稱"></div>
+            <div class="hidden" id="nickGroup"><input type="text" id="authNickname" placeholder="設定暱稱"></div>
             <button class="btn btn-primary" id="authActionBtn" onclick="handleAuth()">進入引力網格</button>
-            <button class="btn btn-outline" id="authToggleBtn" onclick="toggleAuthMode()">初次探索？切換註冊</button>
+            <button class="btn btn-outline" id="authToggleBtn" onclick="toggleAuthMode()">切換註冊/登入</button>
         </div>
     </div>
 
+    <!-- ========== 主面板 ========== -->
     <div class="app-container hidden" id="mainApp">
-        
-        <div class="card radar-panel">
-            <div class="radar-outer">
-                <div id="radarMap"></div>
-                <div class="radar-sweeper" id="sweeperEl"></div>
-            </div>
+        <div class="tab-nav no-print">
+            <button class="tab-btn active" onclick="switchTab('radar')">📍 雷達</button>
+            <button class="tab-btn" onclick="switchTab('team')">🛡️ 組隊</button>
+            <button class="tab-btn" onclick="switchTab('history')">📊 歷史</button>
+            <button class="tab-btn" onclick="switchTab('settings')">⚙️ 設定</button>
         </div>
 
-        <div class="card">
-            <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
-                <button class="btn btn-primary" id="trackBtn" onclick="toggleTracking(); logFeatureClick('雷達實時掃描');" style="flex:1;">▶️ 啟動雷達實時掃描</button>
-                <label style="font-size:0.8rem; color:#fff; display:flex; align-items:center; gap:4px; white-space:nowrap;">
-                    <input type="checkbox" id="shieldToggle" onchange="updateShieldStatus()"> 🛑 隱形屏蔽
-                </label>
-                <button class="btn btn-outline" style="color:#e74c3c; border-color:#e74c3c; border-radius:20px; padding: 10px 14px;" onclick="handleLogout()">🚪 登出系統</button>
-            </div>
-            <div class="grid-2">
-                <div>
-                    <span style="font-size:0.75rem; color:var(--accent);">🎯 篩選同好類別：</span>
-                    <select id="filterCategory" onchange="refreshRadarMarkers(); logFeatureClick('同好類別篩選');">
-                        <option value="全類別">1. 全類別</option>
-                        <option value="吃貨團">2. 吃貨團</option>
-                        <option value="健身團">3. 健身團</option>
-                        <option value="商務交流">4. 商務交流</option>
-                        <option value="科技新創">5. 科技新創</option>
-                    </select>
+        <!-- ===== 雷達面板 ===== -->
+        <div id="radarTab">
+            <div class="card radar-panel">
+                <div class="radar-outer">
+                    <div id="radarMap"></div>
+                    <div class="radar-sweeper" id="sweeperEl"></div>
                 </div>
-                <div>
-                    <span style="font-size:0.75rem; color:var(--accent);">👁️ 雷達圖層過濾：</span>
-                    <div style="font-size:0.75rem; display:flex; flex-direction:column; gap:4px; margin-top:4px;">
-                        <label><input type="checkbox" id="showStrangers" checked onchange="refreshRadarMarkers()"> 陌生人 (黃點)</label>
-                        <label><input type="checkbox" id="showFriends" checked onchange="refreshRadarMarkers()"> 好友組員 (藍點)</label>
-                        <label><input type="checkbox" id="showTargets" checked onchange="refreshRadarMarkers()"> 固定地點 (綠點)</label>
-                        <label><input type="checkbox" id="showTeams" checked onchange="refreshRadarMarkers()"> ⚡ 組隊招募中 (紅點外圈)</label>
+            </div>
+            <div class="card">
+                <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+                    <button class="btn btn-primary" id="trackBtn" onclick="toggleTracking()" style="flex:1;">▶️ 啟動雷達</button>
+                    <button class="btn btn-outline" style="color:#e74c3c; border-color:#e74c3c;" onclick="handleLogout()">🚪 登出</button>
+                </div>
+                <div class="grid-2">
+                    <select id="filterCategory" onchange="refreshRadarMarkers()">
+                        <option value="全類別">全類別</option><option value="吃貨團">吃貨團</option>
+                        <option value="健身團">健身團</option><option value="商務交流">商務交流</option>
+                    </select>
+                    <div style="font-size:0.7rem; display:flex; flex-direction:column; gap:2px;">
+                        <label><input type="checkbox" id="showStrangers" checked onchange="refreshRadarMarkers()"> 陌生人</label>
+                        <label><input type="checkbox" id="showTeams" checked onchange="refreshRadarMarkers()"> ⚡ 組隊</label>
                     </div>
                 </div>
-            </div>
-            <div id="geoStatus" style="font-size:0.7rem; font-family:monospace; text-align:center; color:var(--accent);">範圍規範：雷達僅偵測 1500M 內對象，超出範圍之使用者將自動隱形</div>
-        </div>
-
-        <div class="card" id="partyWindowCard" style="border: 2px dashed var(--team-color); background: rgba(231,76,60,0.02);">
-            <div class="card-title" style="color:var(--team-color)">🛡️ 遊戲級「當前隊伍成員列表」(Party Window)</div>
-            <div id="partyMemberList" style="display:flex; flex-direction:column; gap:4px;">
-                <div style="font-size:0.8rem; color:#888; text-align:center; padding:10px;">您目前處於無隊伍散人狀態</div>
+                <div id="geoStatus" style="font-size:0.7rem; text-align:center; color:var(--accent);">雷達範圍：1500M</div>
             </div>
         </div>
 
-        <div class="card" id="partyChatCard" style="border: 1px solid var(--team-color);">
-            <div class="card-title" style="color:var(--team-color)">🔊 組隊專屬公頻聊天室 (Party Chat)</div>
-            <div class="chat-box" id="partyChatBox" style="height:140px; background:#0c0f13;"></div>
-            <div style="display:grid; grid-template-columns: 1fr auto; gap:6px;">
-                <input type="text" id="partyChatInput" placeholder="在此輸入組隊頻道訊息全隊可見...">
-                <button class="btn btn-primary" style="padding:6px 12px; background:var(--team-color); color:#fff;" onclick="sendPartyChatMessage()">發送</button>
+        <!-- ===== 組隊面板 ===== -->
+        <div id="teamTab" class="hidden">
+            <div class="card" style="border:2px dashed var(--team-color);">
+                <div class="card-title" style="color:var(--team-color);">🛡️ 當前隊伍</div>
+                <div id="partyMemberList"><div style="font-size:0.8rem; color:#888; text-align:center;">無隊伍</div></div>
             </div>
-        </div>
-
-        <div class="card" style="border: 1px solid var(--team-color);">
-            <div class="card-title" style="color:var(--team-color)">📋 即時組隊公告欄 (僅顯示 10 KM 內招募團)</div>
-            <div id="teamNoticeBoard" style="display:flex; flex-direction:column; gap:6px; max-height:140px; overflow-y:auto;"></div>
-        </div>
-
-        <div class="card">
-            <div class="card-title" style="color: var(--team-color);">🔥 我的即時組隊揪團看板</div>
-            <div style="display:flex; flex-direction:column; gap:6px;">
-                <input type="text" id="teamTitle" placeholder="輸入目前組隊名稱 (例: 土城健身工廠練背揪團)">
-                <select id="teamCategory">
-                    <option value="健身團">健身團</option>
-                    <option value="吃貨團">吃貨團</option>
-                    <option value="商務交流">商務交流</option>
-                    <option value="科技新創">科技新創</option>
-                </select>
-                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;">
-                    <button class="btn" style="background:var(--team-color); color:#fff;" onclick="changeTeamStatus(true); logFeatureClick('發起組隊揪團');">🟢 開始顯示組隊狀態</button>
-                    <button class="btn" style="background:var(--surface2); color:#fff;" onclick="changeTeamStatus(false)">🛑 退出/解散組隊</button>
+            <div class="card" style="border:1px solid var(--stranger-color);">
+                <div class="card-title" style="color:var(--stranger-color);">📩 待審核請求</div>
+                <div id="pendingRequests"><div style="font-size:0.75rem; color:#888; text-align:center;">無請求</div></div>
+            </div>
+            <div class="card" style="border:1px solid var(--team-color);">
+                <div class="card-title" style="color:var(--team-color);">🔊 組隊公頻</div>
+                <div class="chat-box" id="partyChatBox"></div>
+                <div style="display:grid; grid-template-columns:1fr auto; gap:6px;">
+                    <input type="text" id="partyChatInput" placeholder="輸入訊息...">
+                    <button class="btn btn-primary" style="padding:6px 12px; background:var(--team-color); color:#fff;" onclick="sendPartyChatMessage()">發送</button>
                 </div>
             </div>
-            <div id="myActiveTeamStatus" style="font-size:0.8rem; text-align:center; font-weight:bold; color:#fff;">當前狀態：未開啟組隊</div>
+            <div class="card" style="border:1px solid var(--team-color);">
+                <div class="card-title" style="color:var(--team-color);">📋 組隊公告欄</div>
+                <div id="teamNoticeBoard" style="max-height:140px; overflow-y:auto;"></div>
+            </div>
+            <div class="card">
+                <div class="card-title" style="color:var(--team-color);">🔥 我的組隊狀態</div>
+                <input type="text" id="teamTitle" placeholder="組隊名稱">
+                <select id="teamCategory"><option>健身團</option><option>吃貨團</option><option>商務交流</option></select>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+                    <button class="btn" style="background:var(--team-color); color:#fff;" onclick="changeTeamStatus(true)">🟢 開始招募</button>
+                    <button class="btn" style="background:var(--surface2); color:#fff;" onclick="changeTeamStatus(false)">🛑 退出/解散</button>
+                </div>
+                <div id="myActiveTeamStatus" style="font-size:0.8rem; text-align:center; color:#fff;">未開啟</div>
+            </div>
         </div>
 
-        <div class="card" style="border: 1px solid var(--dashboard-color);">
-            <div class="card-title" style="color:var(--dashboard-color)">📊 雲端後台智能儀表板 (BI Dashboard)</div>
-            <div class="stat-grid">
-                <div class="stat-box"><div style="font-size:0.65rem;">網站總瀏覽</div><div class="stat-num" id="statPageViews">0</div></div>
-                <div class="stat-box"><div style="font-size:0.65rem;">地圖定位量</div><div class="stat-num" id="statGoogleSearch">0</div></div>
-                <div class="stat-box"><div style="font-size:0.65rem;">在線會員數</div><div class="stat-num" id="statActiveUsers" style="color:var(--accent)">0</div></div>
+        <!-- ===== 歷史分析面板 ===== -->
+        <div id="historyTab" class="hidden">
+            <div id="printArea">
+                <div class="card no-print">
+                    <div class="card-title">📆 時間區間</div>
+                    <div style="display:flex; gap:10px;">
+                        <input type="date" id="startDate" style="flex:1;"><span>～</span>
+                        <input type="date" id="endDate" style="flex:1;">
+                    </div>
+                    <button class="btn btn-primary" onclick="loadHistory()">🔍 查詢軌跡</button>
+                </div>
+                <div class="card">
+                    <div class="card-title">📊 摘要</div>
+                    <div class="stats-grid">
+                        <div class="stat-item"><div class="stat-value" id="totalDistance">--</div><div class="stat-label">總移動距離</div></div>
+                        <div class="stat-item"><div class="stat-value" id="totalStayTime">--</div><div class="stat-label">總停留時間</div></div>
+                        <div class="stat-item"><div class="stat-value" id="totalStops">--</div><div class="stat-label">停留次數</div></div>
+                        <div class="stat-item"><div class="stat-value" id="topPlace">--</div><div class="stat-label">最常停留點</div></div>
+                    </div>
+                </div>
+                <div class="card"><div class="card-title">🗺️ 軌跡地圖</div><div class="map-container" id="historyMap"></div></div>
+                <div class="card"><div class="card-title">📈 每日距離</div><div class="chart-container"><canvas id="distanceChart"></canvas></div></div>
+                <div class="card"><div class="card-title">⏱️ 停留明細</div><div id="stayTable" style="max-height:200px; overflow-y:auto;"></div></div>
             </div>
-            <div style="background:var(--surface2); padding:10px; border-radius:8px;">
-                <span style="font-size:0.75rem; color:var(--dashboard-color); font-weight:bold; display:block; margin-bottom:4px;">💡 核心功能使用熱力排行：</span>
-                <div id="featureRankList" style="font-size:0.75rem; display:flex; flex-direction:column; gap:4px;">數據計算中...</div>
+            <div class="card no-print">
+                <button class="btn btn-outline" onclick="exportCSV()">📥 匯出 CSV</button>
+                <button class="btn btn-outline" onclick="printReport()">🖨️ 列印報表</button>
             </div>
-            <button class="btn btn-outline" style="color:var(--dashboard-color); border-color:var(--dashboard-color); padding:6px;" onclick="loadDashboardMetrics()">🔄 刷新即時運營數據</button>
         </div>
 
-        <div class="card">
-            <div class="card-title">🚀 編輯我的商務引力與配對需求</div>
-            <div style="background:var(--surface2); padding:12px; border-radius:8px; text-align:center; display:flex; flex-direction:column; gap:8px; align-items:center;">
+        <!-- ===== 設定面板 ===== -->
+        <div id="settingsTab" class="hidden">
+            <div class="card">
+                <div class="card-title">🚀 個人檔案</div>
                 <img id="myAvatarDisplay" src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" class="avatar-preview">
-                <span style="font-size:0.75rem; color:#fff;">🔗 貼上外部大頭貼網址</span>
-                <input type="text" id="avatarUrlInput" placeholder="請貼上圖片網址" onchange="previewAvatarUrl()">
-            </div>
-            <div style="display:flex; flex-direction:column; gap:6px; margin-top:6px;">
+                <input type="text" id="avatarUrlInput" placeholder="大頭貼網址" onchange="document.getElementById('myAvatarDisplay').src=this.value">
                 <textarea id="myHasWhat" placeholder="我的資源摘要"></textarea>
-                <textarea id="myMatchDemand" placeholder="輸入配對關鍵字"></textarea>
+                <textarea id="myMatchDemand" placeholder="配對關鍵字"></textarea>
+                <button class="btn btn-primary" onclick="saveProfile()">💾 儲存</button>
             </div>
-            <button class="btn btn-primary" onclick="saveProfile(); logFeatureClick('修改引力自介');">💾 儲存引力設定</button>
-        </div>
-
-        <div class="card" style="border: 1px solid var(--friend-color);">
-            <div class="card-title" style="color:var(--friend-color)">🧑‍🤝‍🧑 我的組員好友與線上文字對話</div>
-            <div id="friendContainer" style="display:flex; flex-direction:column; gap:6px;"></div>
-            <div style="display:grid; grid-template-columns: 1fr auto; gap:6px;">
-                <input type="text" id="fEmail" placeholder="輸入好友註冊的 Email">
-                <button class="btn btn-outline" onclick="addFriend()">+ 綁定好友</button>
+            <div class="card">
+                <div class="card-title">🧑‍🤝‍🧑 好友</div>
+                <div id="friendContainer"></div>
+                <input type="text" id="fEmail" placeholder="好友 Email">
+                <button class="btn btn-outline" onclick="addFriend()">+ 綁定</button>
+            </div>
+            <div class="card">
+                <div class="card-title">📍 定點目標</div>
+                <div id="targetList"></div>
+                <input type="text" id="geoSearchInput" placeholder="搜尋地點...">
+                <input type="text" id="tName" placeholder="地點名稱">
+                <button class="btn btn-primary" onclick="addStaticTarget()">+ 存入</button>
+            </div>
+            <div class="card">
+                <div class="card-title">⚙️ EmailJS 郵件</div>
+                <div class="input-group"><label>Public Key</label><input id="emailjsPublicKey"></div>
+                <div class="input-group"><label>Service ID</label><input id="emailjsServiceId"></div>
+                <div class="input-group"><label>Template ID</label><input id="emailjsTemplateId"></div>
+                <div class="input-group"><label>收件人</label><input id="defaultRecipient"></div>
+                <button class="btn btn-outline" onclick="saveEmailSettings()">💾 儲存</button>
+                <button class="btn btn-outline" onclick="testEmailConfig()">🧪 測試</button>
             </div>
         </div>
-
-        <div class="card">
-            <div class="card-title">📍 定點目標區域管理</div>
-            <div id="targetList" style="display:flex; flex-direction:column; gap:6px;"></div>
-            <input type="text" id="geoSearchInput" placeholder="智慧地標搜尋定位...">
-            <div class="hidden"><input type="text" id="tLat"><input type="text" id="tLng"></div>
-            <input type="text" id="tName" placeholder="自設地點名稱">
-            <select id="tTag"><option value="#室內類">#室內類</option><option value="#美食類">#美食類</option></select>
-            <button class="btn btn-primary" onclick="addStaticTarget()">+ 存入雲端定點</button>
-        </div>
-
     </div>
 
     <script>
-        window.SUPABASE_URL = 'https://hknxdvefnuxgyepuuqra.supabase.co';
-        window.SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhrbnhkdmVmbnV4Z3llcHV1cXJhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1MzM0MDAsImV4cCI6MjA5NzEwOTQwMH0.M97OwM_9CrLCrgxbyA6kQs0MLFiRDzyYlvIiGqhBGec';
-        
-        if (!window.dbClient) {
-            window.dbClient = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_KEY);
-        }
+        // ==================== Supabase 連線 ====================
+        const SUPABASE_URL = 'https://hknxdvefnuxgyepuuqra.supabase.co';
+        const SUPABASE_KEY =
+            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhrbnhkdmVmbnV4Z3llcHV1cXJhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1MzM0MDAsImV4cCI6MjA5NzEwOTQwMH0.M97OwM_9CrLCrgxbyA6kQs0MLFiRDzyYlvIiGqhBGec';
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        let currentUser = null, tracking = false, watchId = null, currentPosition = { lat: 25.0451, lng: 121.4525 };
-        let radarMap = null, myMarker = null, radarCircle = null;
-        let mapElements = [], lastNotifiedUsers = new Set();
-        let isRegister = false;
-        const DEFAULT_AVATAR = 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png';
+        let currentUser = null,
+            tracking = false,
+            watchId = null,
+            currentPosition = { lat: 25.0451, lng: 121.4525 };
+        let radarMap = null,
+            myMarker = null,
+            radarCircle = null;
+        let historyMap = null,
+            distanceChart = null,
+            currentHistoryData = null;
+        let mapElements = [],
+            isRegister = false;
+        const RECORD_INTERVAL = 30000;
 
-        function showToast(msg, type) {
-            if(!type) type = 'info';
-            const t = document.createElement('div'); t.className = "toast " + type; t.textContent = msg;
+        function showToast(msg, type = 'info') {
+            const t = document.createElement('div');
+            t.className = `toast ${type}`;
+            t.textContent = msg;
             document.getElementById('toastContainer').appendChild(t);
-            setTimeout(function() { t.remove(); }, 4000);
+            setTimeout(() => t.remove(), 4000);
         }
 
-        function toggleAuthMode() { isRegister = !isRegister; document.getElementById('nickGroup').classList.toggle('hidden', !isRegister); }
         function calcDistance(lat1, lon1, lat2, lon2) {
-            const R = 6371000; const dLat = (lat2 - lat1) * Math.PI / 180; const dLon = (lon2 - lon1) * Math.PI / 180;
-            const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) * Math.sin(dLon/2) * Math.sin(dLon/2);
-            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-        }
-        async function logFeatureClick(f) { try{await window.dbClient.rpc('increment_feature_click',{f_name:f,m_str:new Date().toISOString().slice(0,7)});}catch(e){} }
-
-        async function initGoogleAutocomplete() {
-            const input = document.getElementById('geoSearchInput');
-            if (typeof google === 'undefined') return;
-            const autocomplete = new google.maps.places.Autocomplete(input, { componentRestrictions: { country: 'tw' } });
-            autocomplete.addListener('place_changed', function() {
-                const place = autocomplete.getPlace();
-                if (!place.geometry) return;
-                const lat = place.geometry.location.lat(); const lng = place.geometry.location.lng();
-                document.getElementById('tLat').value = lat; document.getElementById('tLng').value = lng;
-                document.getElementById('tName').value = place.name;
-                if(radarMap) radarMap.setView([lat, lng], 16);
-            });
+            const R = 6371000,
+                dLat = (lat2 - lat1) * Math.PI / 180,
+                dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(
+                dLon / 2) ** 2;
+            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
         }
 
-        function previewAvatarUrl() { document.getElementById('myAvatarDisplay').src = document.getElementById('avatarUrlInput').value || DEFAULT_AVATAR; }
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            ['radarTab', 'teamTab', 'historyTab', 'settingsTab'].forEach(id => document.getElementById(id).classList.add(
+                'hidden'));
+            if (tab === 'radar') { document.querySelector('.tab-btn:nth-child(1)').classList.add('active');
+                document.getElementById('radarTab').classList.remove('hidden'); } else if (tab === 'team') { document
+                    .querySelector('.tab-btn:nth-child(2)').classList.add('active');
+                document.getElementById('teamTab').classList.remove('hidden');
+                refreshPartyWindow();
+                loadPartyChatMessages();
+                loadPendingRequests();
+                loadTeamNoticeBoard(); } else if (tab === 'history') { document.querySelector('.tab-btn:nth-child(3)')
+                    .classList.add('active');
+                document.getElementById('historyTab').classList.remove('hidden'); const now = new Date();
+                document.getElementById('endDate').value = now.toISOString().split('T')[0];
+                document.getElementById('startDate').value = new Date(now - 7 * 86400000).toISOString().split('T')[0];
+                setTimeout(initHistoryMap, 300); } else if (tab === 'settings') { document.querySelector(
+                    '.tab-btn:nth-child(4)').classList.add('active');
+                document.getElementById('settingsTab').classList.remove('hidden');
+                loadSettingsData(); }
+        }
 
-        // ==================== [🛠️修復] 註冊 Null 檢查與安全解構 ====================
+        // ==================== 認證 ====================
+        function toggleAuthMode() {
+            isRegister = !isRegister;
+            document.getElementById('nickGroup').classList.toggle('hidden', !isRegister);
+            document.getElementById('authActionBtn').textContent = isRegister ? '註冊' : '登入';
+            document.getElementById('authToggleBtn').textContent = isRegister ? '切換登入' : '切換註冊';
+        }
+
         async function handleAuth() {
             const email = document.getElementById('authEmail').value.trim();
             const password = document.getElementById('authPassword').value;
-            
-            if (!email || !password) {
-                showToast('⚠️ 請輸入完整的帳號與密碼', 'error');
-                return;
-            }
-
+            if (!email || !password) { showToast('⚠️ 請輸入完整', 'error'); return; }
+            if (password.length < 6) { showToast('⚠️ 密碼至少6碼', 'error'); return; }
             try {
-                if(isRegister) {
-                    const nick = document.getElementById('authNickname').value.trim() || '新成員';
-                    const { data, error } = await window.dbClient.auth.signUp({ email: email, password: password });
-                    
+                if (isRegister) {
+                    const nick = document.getElementById('authNickname').value.trim() || email.split('@')[0];
+                    const { data, error } = await supabase.auth.signUp({ email, password, options: { data: { nickname: nick } } });
                     if (error) throw error;
-                    
-                    // 檢查是否因啟用 Email 驗證導致 user 為 null 或需要確認
-                    if (data && data.user) {
-                        await window.dbClient.from('profiles').insert({ id: data.user.id, email: email, nickname: nick, login_count: 1 });
-                        showToast('🎉 註冊成功！已切換回登入畫面。', 'success');
-                        toggleAuthMode();
-                    } else {
-                        // Supabase 預設若開啟 Email Confirmation，在未驗證前可能不會立刻回傳 user session
-                        showToast('📩 註冊驗證信已寄出，請至信箱確認後再行登入！', 'match');
-                        toggleAuthMode();
-                    }
+                    showToast('✅ 註冊成功！請重新登入', 'success');
+                    toggleAuthMode();
                 } else {
-                    const { data, error } = await window.dbClient.auth.signInWithPassword({ email: email, password: password });
+                    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
                     if (error) throw error;
-                    
                     currentUser = data.user;
-                    await window.dbClient.from('profiles').update({ is_online: true }).eq('id', currentUser.id);
+                    await supabase.from('profiles').update({ is_online: true, login_count: (await supabase.from(
+                        'profiles').select('login_count').eq('id', currentUser.id).single()).data?.login_count +
+                        1 || 1 }).eq('id', currentUser.id);
                     enterMainApp();
                 }
-            } catch(e) { 
-                showToast('驗證失敗: ' + e.message, 'error'); 
-            }
+            } catch (e) { showToast('❌ ' + e.message, 'error'); }
         }
 
         async function handleLogout() {
-            try {
-                if (currentUser) {
-                    if (tracking && watchId) {
-                        navigator.geolocation.clearWatch(watchId);
-                        tracking = false;
-                        document.getElementById('trackBtn').textContent = '▶️ 啟動雷達實時掃描';
-                        document.getElementById('sweeperEl').style.display = 'none';
-                    }
-                    await window.dbClient.from('profiles').update({ is_online: false }).eq('id', currentUser.id);
-                }
-                await window.dbClient.auth.signOut();
-                currentUser = null;
-                
-                document.getElementById('mainApp').classList.add('hidden');
-                document.getElementById('authPage').classList.remove('hidden');
-                document.getElementById('authPassword').value = ''; 
-                showToast('🚪 帳號已安全登出，可換帳號登入！', 'success');
-            } catch (e) {
-                showToast('登出發生錯誤: ' + e.message, 'error');
-            }
+            if (tracking) stopTracking();
+            if (currentUser) await supabase.from('profiles').update({ is_online: false, current_team_id: null, is_teaming: false,
+                team_name: null }).eq('id', currentUser.id);
+            await supabase.auth.signOut();
+            currentUser = null;
+            document.getElementById('mainApp').classList.add('hidden');
+            document.getElementById('authPage').classList.remove('hidden');
+            showToast('🚪 已登出', 'info');
         }
 
-        async function loadProfileData() {
-            const res = await window.dbClient.from('profiles').select('*').eq('id', currentUser.id).single();
-            if(res.data) {
-                document.getElementById('avatarUrlInput').value = res.data.avatar_url || '';
-                document.getElementById('myAvatarDisplay').src = res.data.avatar_url || DEFAULT_AVATAR;
-                document.getElementById('myHasWhat').value = res.data.has_what || '';
-                document.getElementById('shieldToggle').checked = res.data.is_shielded || false;
-                if(res.data.is_teaming) {
-                    document.getElementById('teamTitle').value = res.data.team_name || '';
-                    document.getElementById('myActiveTeamStatus').textContent = `🟢 隊伍招募中: ${res.data.team_name}`;
-                }
-            }
+        async function enterMainApp() {
+            document.getElementById('authPage').classList.add('hidden');
+            document.getElementById('mainApp').classList.remove('hidden');
+            loadProfileData();
+            initRadarMap(currentPosition.lat, currentPosition.lng);
+            initGoogleAutocomplete();
+            setInterval(() => { if (tracking && currentUser) { refreshRadarMarkers();
+                    uploadTrailPoint(); } }, RECORD_INTERVAL);
         }
 
-        async function saveProfile() {
-            await window.dbClient.from('profiles').update({
-                avatar_url: document.getElementById('avatarUrlInput').value.trim() || null,
-                has_what: document.getElementById('myHasWhat').value,
-                need_what: document.getElementById('myMatchDemand').value
-            }).eq('id', currentUser.id);
-            showToast('💾 設定已存檔！', 'success');
+        // ==================== 雷達 ====================
+        function initRadarMap(lat, lng) {
+            if (radarMap) { radarMap.setView([lat, lng], 14);
+                myMarker.setLatLng([lat, lng]);
+                radarCircle.setLatLng([lat, lng]); return; }
+            radarMap = L.map('radarMap', { zoomControl: false, attributionControl: false }).setView([lat, lng], 14);
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(radarMap);
+            myMarker = L.marker([lat, lng], { icon: L.divIcon({ html: '<div style="background:#fff;width:14px;height:14px;border-radius:50%;border:3px solid var(--accent);box-shadow:0 0 12px var(--accent);"></div>',
+                    iconSize: [14, 14] }) }).addTo(radarMap);
+            radarCircle = L.circle([lat, lng], { radius: 1500, color: 'var(--accent)', weight: 1, fillOpacity: 0.02 }).addTo(
+                radarMap);
         }
 
-        async function updateShieldStatus() {
-            await window.dbClient.from('profiles').update({ is_shielded: document.getElementById('shieldToggle').checked }).eq('id', currentUser.id);
+        function toggleTracking() {
+            if (tracking) { stopTracking(); return; }
+            if (!navigator.geolocation) { showToast('❌ 不支援GPS', 'error'); return; }
+            showToast('🔍 搜尋GPS...', 'info');
+            navigator.geolocation.getCurrentPosition(pos => {
+                currentPosition = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+                initRadarMap(currentPosition.lat, currentPosition.lng);
+                uploadTrailPoint();
+            }, e => showToast('❌ GPS錯誤', 'error'), { enableHighAccuracy: true, timeout: 20000 });
+            watchId = navigator.geolocation.watchPosition(pos => {
+                currentPosition = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+                initRadarMap(currentPosition.lat, currentPosition.lng);
+                if (currentUser) supabase.from('profiles').update({ current_lat: currentPosition.lat, current_lng: currentPosition
+                        .lng, is_online: true }).eq('id', currentUser.id);
+                refreshRadarMarkers();
+                uploadTrailPoint();
+            }, () => {}, { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 });
+            tracking = true;
+            document.getElementById('trackBtn').textContent = '⏸️ 停止雷達';
+            document.getElementById('sweeperEl').style.display = 'block';
         }
 
+        function stopTracking() {
+            if (watchId) navigator.geolocation.clearWatch(watchId);
+            tracking = false;
+            document.getElementById('trackBtn').textContent = '▶️ 啟動雷達';
+            document.getElementById('sweeperEl').style.display = 'none';
+        }
+
+        async function uploadTrailPoint() {
+            if (!currentUser || !currentPosition) return;
+            try { await supabase.from('location_history').insert({ user_id: currentUser.id, lat: currentPosition.lat,
+                    lng: currentPosition.lng, recorded_at: new Date().toISOString() }); } catch (e) {}
+        }
+
+        async function refreshRadarMarkers() {
+            if (!radarMap || !tracking || !currentUser) return;
+            mapElements.forEach(el => radarMap.removeLayer(el));
+            mapElements = [];
+            const { data: users } = await supabase.from('profiles').select('*').not('current_lat', 'is', null).eq(
+                'is_shielded', false);
+            if (!users) return;
+            const myTeamRes = await supabase.from('profiles').select('current_team_id').eq('id', currentUser.id).single();
+            const myTeamId = myTeamRes.data?.current_team_id;
+
+            users.forEach(u => {
+                if (u.id === currentUser.id) return;
+                const dist = calcDistance(currentPosition.lat, currentPosition.lng, u.current_lat, u.current_lng);
+                if (dist > 1500) return;
+                const isTeaming = u.is_teaming;
+                const color = isTeaming ? 'var(--team-color)' : 'var(--stranger-color)';
+                const html =
+                    `<div style="background:${color};width:14px;height:14px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 10px ${color};${isTeaming?'display:flex;align-items:center;justify-content:center;color:#fff;font-size:9px;':''}">${isTeaming?'🔥':''}</div>`;
+                const marker = L.marker([u.current_lat, u.current_lng], { icon: L.divIcon({ html, iconSize: [16,
+                        16] }) }).addTo(radarMap);
+                marker.bindPopup(
+                    `<div style="color:#333;text-align:center;"><b>${u.nickname}</b><br>${isTeaming?`🔥 ${u.team_name||'招募中'}<br><button class="btn-action" onclick="requestJoinTeam('${u.id}','${u.nickname}')">📩 申請加入</button>`:'散人'}</div>`
+                    );
+                mapElements.push(marker);
+            });
+        }
+
+        // ==================== 組隊系統（修復版）====================
         async function changeTeamStatus(enable) {
             const title = document.getElementById('teamTitle').value.trim();
             const cat = document.getElementById('teamCategory').value;
-            if(enable && !title) { showToast('⚠️ 請輸入組隊名稱', 'error'); return; }
-            
-            if(enable) {
-                await window.dbClient.from('profiles').update({ is_teaming: true, team_name: title, team_category: cat, current_team_id: currentUser.id }).eq('id', currentUser.id);
-                document.getElementById('myActiveTeamStatus').textContent = `🟢 隊伍招募中: ${title}`;
-                showToast('🔥 已成功創建組隊！', 'success');
+            if (enable && !title) { showToast('⚠️ 請輸入組隊名稱', 'error'); return; }
+            if (enable) {
+                await supabase.from('profiles').update({ is_teaming: true, team_name: title, team_category: cat,
+                    current_team_id: currentUser.id }).eq('id', currentUser.id);
+                document.getElementById('myActiveTeamStatus').textContent = `🟢 招募中: ${title}`;
+                showToast('🔥 組隊已建立！', 'success');
             } else {
-                const myProfile = await window.dbClient.from('profiles').select('current_team_id').eq('id', currentUser.id).single();
-                if(myProfile.data && myProfile.data.current_team_id === currentUser.id) {
-                    await window.dbClient.from('profiles').update({ current_team_id: null, is_teaming: false, team_name: null }).eq('current_team_id', currentUser.id);
-                    showToast('🛑 隊伍已解散！', 'info');
+                const { data: my } = await supabase.from('profiles').select('current_team_id').eq('id', currentUser.id)
+                    .single();
+                if (my?.current_team_id === currentUser.id) {
+                    await supabase.from('profiles').update({ current_team_id: null, is_teaming: false, team_name: null }).eq(
+                        'current_team_id', currentUser.id);
+                    showToast('🛑 隊伍已解散', 'info');
                 } else {
-                    await window.dbClient.from('profiles').update({ current_team_id: null }).eq('id', currentUser.id);
-                    showToast('🛑 已退出隊伍！', 'info');
+                    await supabase.from('profiles').update({ current_team_id: null }).eq('id', currentUser.id);
+                    showToast('🛑 已退出隊伍', 'info');
                 }
-                document.getElementById('myActiveTeamStatus').textContent = '當前狀態：未開啟組隊';
+                document.getElementById('myActiveTeamStatus').textContent = '未開啟';
             }
             refreshPartyWindow();
         }
 
-        async function joinTeamGroup(leaderId, leaderName) {
-            await window.dbClient.from('profiles').update({ current_team_id: leaderId }).eq('id', currentUser.id);
-            showToast(`🎉 成功加入 ${leaderName} 的組隊！進入組隊專屬頻道。`, 'success');
-            refreshPartyWindow();
+        async function requestJoinTeam(leaderId, leaderName) {
+            if (!currentUser) return;
+            const { data: existing } = await supabase.from('team_requests').select('*').eq('team_leader_id', leaderId).eq(
+                'applicant_id', currentUser.id).single();
+            if (existing) { showToast('⚠️ 已送出申請，請等待隊長審核', 'error'); return; }
+            await supabase.from('team_requests').insert({ team_leader_id: leaderId, applicant_id: currentUser.id,
+                status: 'pending' });
+            showToast(`📩 已向 ${leaderName} 送出加入請求！`, 'match');
         }
 
-        async function kickMember(userId, name) {
-            await window.dbClient.from('profiles').update({ current_team_id: null }).eq('id', userId);
-            showToast(`❌ 已將 ${name} 踢出隊伍！`, 'info');
-            refreshPartyWindow();
+        async function loadPendingRequests() {
+            if (!currentUser) return;
+            const { data: requests } = await supabase.from('team_requests').select(
+                'id, applicant_id, status, profiles!team_requests_applicant_id_fkey(nickname)').eq('team_leader_id',
+                currentUser.id).eq('status', 'pending');
+            const container = document.getElementById('pendingRequests');
+            if (!requests?.length) { container.innerHTML =
+                '<div style="font-size:0.75rem;color:#888;text-align:center;">無待審核請求</div>'; return; }
+            container.innerHTML = requests.map(r => `
+                <div class="list-row">
+                    <span>👤 ${r.profiles?.nickname||'未知'}</span>
+                    <div>
+                        <button class="btn-game" style="background:#27ae60;color:#fff;" onclick="handleTeamRequest('${r.id}','approved')">✅ 同意</button>
+                        <button class="btn-game" style="background:#c0392b;color:#fff;" onclick="handleTeamRequest('${r.id}','rejected')">❌ 拒絕</button>
+                    </div>
+                </div>
+            `).join('');
         }
 
-        async function transferLeader(newLeaderId, name) {
-            await window.dbClient.from('profiles').update({ current_team_id: newLeaderId }).eq('current_team_id', currentUser.id);
-            const target = await window.dbClient.from('profiles').select('team_name, team_category').eq('id', currentUser.id).single();
-            await window.dbClient.from('profiles').update({ is_teaming: true, team_name: target.data?.team_name || '新隊長隊伍', team_category: target.data?.team_category || '商務交流' }).eq('id', newLeaderId);
-            await window.dbClient.from('profiles').update({ is_teaming: false, team_name: null }).eq('id', currentUser.id);
-            showToast(`👑 已將隊長特權移交給 ${name}！`, 'success');
+        async function handleTeamRequest(requestId, status) {
+            const { data: req } = await supabase.from('team_requests').select('*').eq('id', requestId).single();
+            if (!req) return;
+            await supabase.from('team_requests').update({ status }).eq('id', requestId);
+            if (status === 'approved') {
+                await supabase.from('profiles').update({ current_team_id: req.team_leader_id }).eq('id', req.applicant_id);
+                showToast('✅ 已同意加入！', 'success');
+            } else { showToast('❌ 已拒絕', 'info'); }
+            loadPendingRequests();
             refreshPartyWindow();
         }
 
         async function refreshPartyWindow() {
             if (!currentUser) return;
-            const myRes = await window.dbClient.from('profiles').select('current_team_id').eq('id', currentUser.id).single();
-            const tId = myRes.data?.current_team_id;
+            const { data: my } = await supabase.from('profiles').select('current_team_id').eq('id', currentUser.id).single();
+            const tId = my?.current_team_id;
             const container = document.getElementById('partyMemberList');
-            
-            if(!tId) {
-                container.innerHTML = `<div style="font-size:0.8rem; color:#888; text-align:center; padding:10px;">您目前處於無隊伍散人狀態</div>`;
-                return;
-            }
-
-            const membersRes = await window.dbClient.from('profiles').select('id, nickname, is_teaming, is_online').eq('current_team_id', tId);
-            const members = membersRes.data || [];
+            if (!tId) { container.innerHTML =
+                '<div style="font-size:0.8rem;color:#888;text-align:center;">無隊伍</div>'; return; }
+            const { data: members } = await supabase.from('profiles').select('id,nickname,is_online').eq('current_team_id',
+                tId);
+            if (!members?.length) { container.innerHTML =
+                '<div style="font-size:0.8rem;color:#888;text-align:center;">無隊員</div>'; return; }
             const isMeLeader = (tId === currentUser.id);
-            
-            let html = '';
-            members.forEach(m => {
-                const isLeader = (m.id === tId);
-                const roleTag = isLeader ? `<span style="color:var(--team-color); font-weight:bold;">[隊長]</span>` : `<span style="color:var(--friend-color);">[隊員]</span>`;
-                const onlineDot = m.is_online ? '🟢' : '⚪';
-                
-                let actionButtons = '';
-                if(isMeLeader && m.id !== currentUser.id) {
-                    actionButtons = `
-                        <div>
-                            <button class="btn-game" style="background:#e67e22; color:#fff;" onclick="transferLeader('${m.id}', '${m.nickname}')">👑 轉讓</button>
-                            <button class="btn-game" style="background:#c0392b; color:#fff;" onclick="kickMember('${m.id}', '${m.nickname}')">❌ 踢除</button>
-                        </div>
-                    `;
-                }
+            container.innerHTML = members.map(m => `
+                <div class="party-member-row">
+                    <span>${m.is_online?'🟢':'⚪'} ${m.id===tId?'[隊長]':'[隊員]'} ${m.nickname} ${m.id===currentUser.id?'(我)':''}</span>
+                    ${isMeLeader && m.id!==currentUser.id ? `<button class="btn-game" style="background:#c0392b;color:#fff;" onclick="kickMember('${m.id}')">踢除</button>` : ''}
+                </div>
+            `).join('');
+        }
 
-                html += `
-                    <div class="party-member-row" style="border-left-color: ${isLeader ? 'var(--team-color)' : 'var(--friend-color)'}">
-                        <div>${onlineDot} ${roleTag} <b>${m.nickname}</b> ${m.id === currentUser.id ? '(我)' : ''}</div>
-                        ${actionButtons}
-                    </div>
-                `;
-            });
-            container.innerHTML = html;
+        async function kickMember(userId) {
+            await supabase.from('profiles').update({ current_team_id: null }).eq('id', userId);
+            showToast('❌ 已踢除', 'info');
+            refreshPartyWindow();
         }
 
         async function loadPartyChatMessages() {
             if (!currentUser) return;
-            const myRes = await window.dbClient.from('profiles').select('current_team_id').eq('id', currentUser.id).single();
-            const tId = myRes.data?.current_team_id;
+            const { data: my } = await supabase.from('profiles').select('current_team_id').eq('id', currentUser.id).single();
+            const tId = my?.current_team_id;
             const box = document.getElementById('partyChatBox');
-            if(!tId) {
-                box.innerHTML = `<div class='msg-line msg-system'>請先點擊公告欄加入任一組隊，方可啟用組隊公頻</div>`;
-                return;
-            }
-
-            const mems = await window.dbClient.from('profiles').select('id').eq('current_team_id', tId);
-            const ids = mems.data?.map(x => x.id) || [];
-            if(ids.length === 0) return;
-
-            const twentyDaysAgo = new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString();
-            const res = await window.dbClient.from('friend_messages')
-                .select('*')
-                .gte('created_at', twentyDaysAgo)
-                .eq('receiver_id', tId)
-                .order('created_at', { ascending: true });
-
-            const profiles = await window.dbClient.from('profiles').select('id, nickname');
-            let html = '';
-            if(res.data) {
-                res.data.forEach(m => {
-                    const sender = profiles.data?.find(x => x.id === m.sender_id);
-                    const name = sender ? sender.nickname : '未知組員';
-                    let side = m.sender_id === currentUser.id ? 'msg-me' : 'msg-other';
-                    html += `<div class='msg-line ${side}'><b>[${name}]:</b> ${m.message}</div>`;
-                });
-            }
-            box.innerHTML = html || `<div class='msg-line msg-system'>✨ 組隊頻道初始化成功，快跟隊友打招呼吧！</div>`;
+            if (!tId) { box.innerHTML =
+                '<div class="msg-line msg-system">請先加入組隊</div>'; return; }
+            const { data: msgs } = await supabase.from('friend_messages').select('*').eq('receiver_id', tId).order(
+                'created_at', { ascending: true }).limit(50);
+            const { data: profiles } = await supabase.from('profiles').select('id,nickname');
+            box.innerHTML = (msgs || []).map(m => {
+                const sender = profiles?.find(p => p.id === m.sender_id);
+                const cls = m.sender_id === currentUser.id ? 'msg-me' : 'msg-other';
+                return `<div class="msg-line ${cls}"><b>${sender?.nickname||'未知'}:</b> ${m.message}</div>`;
+            }).join('') || '<div class="msg-line msg-system">尚無訊息</div>';
             box.scrollTop = box.scrollHeight;
         }
 
         async function sendPartyChatMessage() {
-            const input = document.getElementById('partyChatInput');
-            const text = input.value.trim(); if(!text) return;
-            const myRes = await window.dbClient.from('profiles').select('current_team_id').eq('id', currentUser.id).single();
-            const tId = myRes.data?.current_team_id;
-            if(!tId) { showToast('⚠️ 目前不屬於任何隊伍，無法發言', 'error'); return; }
-
-            await window.dbClient.from('friend_messages').insert({ sender_id: currentUser.id, receiver_id: tId, message: text });
-            input.value = '';
+            const text = document.getElementById('partyChatInput').value.trim();
+            if (!text) return;
+            const { data: my } = await supabase.from('profiles').select('current_team_id').eq('id', currentUser.id).single();
+            const tId = my?.current_team_id;
+            if (!tId) { showToast('⚠️ 不屬於任何隊伍', 'error'); return; }
+            await supabase.from('friend_messages').insert({ sender_id: currentUser.id, receiver_id: tId, message: text });
+            document.getElementById('partyChatInput').value = '';
             loadPartyChatMessages();
         }
 
-        function initRadarMap(lat, lng) {
-            if (radarMap) { radarMap.setView([lat, lng]); myMarker.setLatLng([lat, lng]); radarCircle.setLatLng([lat, lng]); return; }
-            radarMap = L.map('radarMap', { zoomControl: false, attributionControl: false }).setView([lat, lng], 14);
-            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(radarMap);
-            myMarker = L.marker([lat, lng], { icon: L.divIcon({ html: `<div style="background:#fff; width:14px; height:14px; border-radius:50%; border:3px solid var(--accent); box-shadow:0 0 12px var(--accent);"></div>`, iconSize:[14,14] }) }).addTo(radarMap);
-            radarCircle = L.circle([lat, lng], { radius: 1500, color: 'var(--accent)', weight: 1, fillColor: 'var(--accent)', fillOpacity: 0.02 }).addTo(radarMap);
-        }
-
-        function toggleTracking() {
-            const btn = document.getElementById('trackBtn'); const sweeper = document.getElementById('sweeperEl');
-            if (tracking) {
-                if(watchId) navigator.geolocation.clearWatch(watchId);
-                tracking = false; btn.textContent = '▶️ 啟動雷達實時掃描'; sweeper.style.display = 'none';
-                mapElements.forEach(el => radarMap.removeLayer(el)); mapElements = [];
-            } else {
-                watchId = navigator.geolocation.watchPosition(async function(pos) {
-                    if (!currentUser) return;
-                    currentPosition = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-                    initRadarMap(currentPosition.lat, currentPosition.lng);
-                    await window.dbClient.from('profiles').update({ current_lat: currentPosition.lat, current_lng: currentPosition.lng, is_online: true }).eq('id', currentUser.id);
-                    refreshRadarMarkers(); loadTeamNoticeBoard(); refreshPartyWindow(); loadPartyChatMessages();
-                }, e => showToast(e.message, 'error'), { enableHighAccuracy: true });
-                tracking = true; btn.textContent = '⏸️ 停止雷達監控'; sweeper.style.display = 'block';
-            }
-        }
-
-        async function refreshRadarMarkers() {
-            if(!radarMap || !tracking || !currentUser) return;
-            mapElements.forEach(el => radarMap.removeLayer(el)); mapElements = [];
-
-            const myRes = await window.dbClient.from('profiles').select('current_team_id').eq('id', currentUser.id).single();
-            const myTeamId = myRes.data?.current_team_id;
-
-            const uRes = await window.dbClient.from('profiles').select('*').not('current_lat', 'is', null).eq('is_shielded', false);
-            const users = uRes.data || [];
-
-            let leadersGeoMap = {};
-            users.forEach(u => { if(u.is_teaming) leadersGeoMap[u.id] = [u.current_lat, u.current_lng]; });
-
-            users.forEach(u => {
-                if(u.id === currentUser.id) return;
-                const dist = calcDistance(currentPosition.lat, currentPosition.lng, u.current_lat, u.current_lng);
-                if(dist > 1500) return;
-
-                const isSameTeam = (myTeamId && u.current_team_id === myTeamId);
-                let markerColor = u.is_teaming ? 'var(--team-color)' : (isSameTeam ? 'var(--friend-color)' : 'var(--stranger-color)');
-                
-                let dotHtml = u.is_teaming 
-                    ? `<div style='background:${markerColor}; width:16px; height:16px; border-radius:50%; border:2px solid #fff; box-shadow:0 0 12px ${markerColor}; display:flex; align-items:center; justify-content:center; color:#fff; font-size:9px;'>🔥</div>`
-                    : (isSameTeam 
-                        ? `<div style='background:${markerColor}; width:14px; height:14px; border-radius:50%; border:2px solid #fff; box-shadow:0 0 10px ${markerColor}; display:flex; align-items:center; justify-content:center; color:#fff; font-size:8px;'>🔷</div>`
-                        : `<div style='background:${markerColor}; width:12px; height:12px; border-radius:50%; border:2px solid #fff;'></div>`);
-
-                const marker = L.marker([u.current_lat, u.current_lng], { icon: L.divIcon({ html: dotHtml, iconSize:[16,16] }) }).addTo(radarMap);
-                
-                let teamBox = u.is_teaming ? `
-                    <div style='background:var(--team-color); color:#fff; padding:6px; border-radius:4px; margin-bottom:6px; font-size:11px;'>
-                        <b>👥 移動組隊中：</b>${u.team_name}
-                        <button class="btn-action" onclick="joinTeamGroup('${u.id}', '${u.nickname}')">➕ 申請加入此組隊</button>
-                    </div>` : '';
-
-                marker.bindPopup(`
-                    <div style="color:#333; min-width:160px; text-align:center;">
-                        <b>👤 ${u.nickname}</b><br>
-                        <span>職責: ${u.current_team_id ? (u.is_teaming?'隊長':'隊員'):'散人'}</span><br>
-                        ${teamBox}
-                    </div>
-                `);
-                mapElements.push(marker);
-
-                if(u.current_team_id && leadersGeoMap[u.current_team_id]) {
-                    const leaderPos = leadersGeoMap[u.current_team_id];
-                    const polyline = L.polyline([leaderPos, [u.current_lat, u.current_lng]], {
-                        color: 'var(--team-color)',
-                        weight: 2,
-                        dashArray: '5, 10',
-                        opacity: 0.7
-                    }).addTo(radarMap);
-                    mapElements.push(polyline);
-                }
-            });
-            
-            if(myTeamId && leadersGeoMap[myTeamId] && leadersGeoMap[myTeamId][0] !== currentPosition.lat) {
-                const myLine = L.polyline([leadersGeoMap[myTeamId], [currentPosition.lat, currentPosition.lng]], {
-                    color: 'var(--accent)',
-                    weight: 2,
-                    dashArray: '5, 10',
-                    opacity: 0.8
-                }).addTo(radarMap);
-                mapElements.push(myLine);
-            }
-        }
-
         async function loadTeamNoticeBoard() {
-            const res = await window.dbClient.from('profiles').select('*').eq('is_teaming', true).eq('is_shielded', false);
-            let html = '';
-            if(res.data) {
-                res.data.forEach(t => {
-                    const dist = calcDistance(currentPosition.lat, currentPosition.lng, t.current_lat, t.current_lng);
-                    if (dist > 10000) return; 
-                    html += `
-                    <div class='list-row'>
-                        <span>🏷️ <b>${t.team_name}</b> <small style='color:#888;'>(${(dist/1000).toFixed(1)}km)</small></span>
-                        <button class="btn btn-outline" style="padding:4px 8px; font-size:0.75rem;" onclick="joinTeamGroup('${t.id}', '${t.nickname}')">加入</button>
-                    </div>`;
-                });
-            }
-            document.getElementById('teamNoticeBoard').innerHTML = html || '<div style="font-size:0.75rem; text-align:center; padding:10px;">附近暫無組隊招募團</div>';
+            const { data: teams } = await supabase.from('profiles').select('*').eq('is_teaming', true).eq('is_shielded',
+            false);
+            const container = document.getElementById('teamNoticeBoard');
+            if (!teams?.length) { container.innerHTML =
+                '<div style="font-size:0.75rem;color:#888;text-align:center;">附近無組隊</div>'; return; }
+            container.innerHTML = teams.map(t => {
+                const dist = calcDistance(currentPosition.lat, currentPosition.lng, t.current_lat || 25, t.current_lng ||
+                    121);
+                return `<div class="list-row"><span>🔥 ${t.team_name} (${(dist/1000).toFixed(1)}km)</span><button class="btn btn-outline" style="padding:4px 8px;" onclick="requestJoinTeam('${t.id}','${t.nickname}')">申請</button></div>`;
+            }).join('');
         }
 
-        async function loadDashboardMetrics() {
-            try {
-                const viewsRes = await window.dbClient.from('site_metrics').select('metric_value').eq('metric_key', 'total_page_views').single();
-                document.getElementById('statPageViews').textContent = viewsRes.data?.metric_value || 0;
-                const onlineRes = await window.dbClient.from('profiles').select('id', { count: 'exact', head: true }).eq('is_online', true);
-                document.getElementById('statActiveUsers').textContent = onlineRes.count || 0;
-            } catch(e) {}
+        // ==================== 歷史分析 ====================
+        function initHistoryMap() {
+            const el = document.getElementById('historyMap');
+            if (!el || el.offsetHeight === 0) return;
+            if (historyMap) { historyMap.invalidateSize(); return; }
+            historyMap = L.map('historyMap').setView([25.033, 121.565], 13);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(historyMap);
+        }
+
+        async function loadHistory() {
+            if (!currentUser) return;
+            const start = document.getElementById('startDate').value + 'T00:00:00';
+            const end = document.getElementById('endDate').value + 'T23:59:59';
+            const { data } = await supabase.from('location_history').select('*').eq('user_id', currentUser.id).gte(
+                'recorded_at', start).lte('recorded_at', end).order('recorded_at');
+            if (!data?.length) { showToast('⚠️ 無資料', 'error'); return; }
+            currentHistoryData = data;
+            initHistoryMap();
+            if (!historyMap) return;
+            historyMap.eachLayer(l => { if (!(l instanceof L.TileLayer)) historyMap.removeLayer(l); });
+            const latlngs = data.map(p => [p.lat, p.lng]);
+            L.polyline(latlngs, { color: '#4da6ff', weight: 3 }).addTo(historyMap);
+            if (L.heatLayer) L.heatLayer(latlngs, { radius: 20, blur: 15 }).addTo(historyMap);
+            const stops = detectStops(data);
+            analyzeAndDisplay(stops, data);
+            stops.forEach(s => L.circleMarker([s.lat, s.lng], { radius: 8, color: '#f59e0b', fillOpacity: 0.6 }).bindPopup(
+                `停留 ${Math.round(s.duration)} 分鐘`).addTo(historyMap));
+            drawDistanceChart(data);
+            historyMap.fitBounds(L.polyline(latlngs).getBounds().pad(0.2));
+            showToast(`✅ 已載入 ${data.length} 點`, 'success');
+        }
+
+        function detectStops(points) {
+            const stops = [];
+            let start = 0;
+            for (let i = 1; i < points.length; i++) {
+                const d = calcDistance(points[i - 1].lat, points[i - 1].lng, points[i].lat, points[i].lng);
+                const t = (new Date(points[i].recorded_at) - new Date(points[i - 1].recorded_at)) / 1000;
+                if (d < 50 && t < 300 && i - start > 3) {
+                    if (stops.length && start - stops[stops.length - 1].endIdx < 3) stops[stops.length - 1].endIdx = i;
+                    else stops.push({ startIdx: start, endIdx: i });
+                } else start = i;
+            }
+            return stops.map(s => ({ start: points[s.startIdx].recorded_at, end: points[s.endIdx].recorded_at, lat: points[
+                    s.startIdx].lat, lng: points[s.startIdx].lng, duration: (new Date(points[s.endIdx].recorded_at) -
+                    new Date(points[s.startIdx].recorded_at)) / 60000 }));
+        }
+
+        function analyzeAndDisplay(stops, points) {
+            let d = 0;
+            for (let i = 1; i < points.length; i++) d += calcDistance(points[i - 1].lat, points[i - 1].lng, points[i].lat,
+                points[i].lng);
+            document.getElementById('totalDistance').textContent = (d / 1000).toFixed(2) + ' km';
+            const stay = stops.reduce((a, b) => a + b.duration, 0);
+            document.getElementById('totalStayTime').textContent = Math.floor(stay / 60) + 'h ' + Math.round(stay % 60) + 'm';
+            document.getElementById('totalStops').textContent = stops.length;
+            document.getElementById('topPlace').textContent = stops.length ? Object.entries(stops.reduce((acc, s) => { const k =
+                    s.lat.toFixed(4) + ',' + s.lng.toFixed(4);
+                acc[k] = (acc[k] || 0) + 1; return acc; }, {})).sort((a, b) => b[1] - a[1])[0][0] : '無';
+            document.getElementById('stayTable').innerHTML = stops.slice(0, 20).map(s =>
+                `<div class="list-row"><span>${new Date(s.start).toLocaleTimeString()}-${new Date(s.end).toLocaleTimeString()}</span><span>${Math.round(s.duration)}分鐘</span></div>`
+            ).join('') || '無';
+        }
+
+        function drawDistanceChart(points) {
+            const daily = {};
+            for (let i = 1; i < points.length; i++) { const date = points[i].recorded_at.split('T')[0];
+                daily[date] = (daily[date] || 0) + calcDistance(points[i - 1].lat, points[i - 1].lng, points[i].lat, points[
+                    i].lng); }
+            const labels = Object.keys(daily).sort(),
+                data = labels.map(d => (daily[d] / 1000).toFixed(2));
+            if (distanceChart) distanceChart.destroy();
+            const ctx = document.getElementById('distanceChart')?.getContext('2d');
+            if (ctx) distanceChart = new Chart(ctx, { type: 'bar', data: { labels, datasets: [{ label: '每日距離(km)',
+                    data, backgroundColor: '#4da6ff' }] }, options: { responsive: true,
+                    maintainAspectRatio: false } });
+        }
+
+        function exportCSV() {
+            if (!currentHistoryData) return;
+            const stops = detectStops(currentHistoryData);
+            let csv = '\uFEFF時間,緯度,經度\n';
+            currentHistoryData.forEach(p => csv += `${p.recorded_at},${p.lat},${p.lng}\n`);
+            csv += '\n停留明細\n';
+            stops.forEach(s => csv +=
+                `${s.start},${s.end},${s.lat.toFixed(6)},${s.lng.toFixed(6)},${Math.round(s.duration)}\n`);
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+            a.download = '軌跡_' + new Date().toISOString().split('T')[0] + '.csv';
+            a.click();
+        }
+
+        function printReport() { window.print(); }
+
+        // ==================== 設定 ====================
+        async function loadProfileData() {
+            const { data } = await supabase.from('profiles').select('*').eq('id', currentUser.id).single();
+            if (!data) return;
+            document.getElementById('avatarUrlInput').value = data.avatar_url || '';
+            document.getElementById('myAvatarDisplay').src = data.avatar_url || DEFAULT_AVATAR;
+            document.getElementById('myHasWhat').value = data.has_what || '';
+            document.getElementById('myMatchDemand').value = data.need_what || '';
+            if (data.is_teaming) document.getElementById('myActiveTeamStatus').textContent = `🟢 招募中: ${data.team_name}`;
+        }
+
+        async function saveProfile() {
+            await supabase.from('profiles').update({ avatar_url: document.getElementById('avatarUrlInput').value,
+                has_what: document.getElementById('myHasWhat').value, need_what: document.getElementById(
+                    'myMatchDemand').value }).eq('id', currentUser.id);
+            showToast('💾 已儲存', 'success');
         }
 
         async function addFriend() {
-            const email = document.getElementById('fEmail').value.trim(); if(!email) return;
-            await window.dbClient.from('friendships').insert({ user_id: currentUser.id, friend_email: email, friend_nickname: email });
-            document.getElementById('fEmail').value = ''; showToast('好友綁定成功');
+            const email = document.getElementById('fEmail').value.trim();
+            if (!email) return;
+            await supabase.from('friendships').insert({ user_id: currentUser.id, friend_email: email, friend_nickname: email });
+            document.getElementById('fEmail').value = '';
+            showToast('✅ 已綁定', 'success');
+            loadSettingsData();
         }
 
         async function addStaticTarget() {
             const name = document.getElementById('tName').value.trim();
-            await window.dbClient.from('static_targets').insert({ user_id: currentUser.id, name: name, lat: currentPosition.lat, lng: currentPosition.lng });
-            showToast('定點已存入雲端');
+            if (!name) return;
+            await supabase.from('static_targets').insert({ user_id: currentUser.id, name, lat: currentPosition.lat,
+                lng: currentPosition.lng });
+            showToast('✅ 已存入', 'success');
+            loadSettingsData();
         }
 
-        async function enterMainApp() { 
-            document.getElementById('authPage').classList.add('hidden'); document.getElementById('mainApp').classList.remove('hidden'); 
-            loadProfileData(); loadTeamNoticeBoard(); loadDashboardMetrics(); refreshPartyWindow(); loadPartyChatMessages();
-            setTimeout(() => { initRadarMap(25.0451, 121.4525); initGoogleAutocomplete(); }, 300); 
-            window.appInterval = setInterval(() => { 
-                if(tracking && currentUser) { refreshRadarMarkers(); loadTeamNoticeBoard(); refreshPartyWindow(); loadPartyChatMessages(); } 
-            }, 5000);
+        async function loadSettingsData() {
+            const { data: friends } = await supabase.from('friendships').select('*').eq('user_id', currentUser.id);
+            document.getElementById('friendContainer').innerHTML = (friends || []).map(f =>
+                `<div class="list-row"><span>🧑 ${f.friend_nickname}</span><button class="btn btn-danger" onclick="supabase.from('friendships').delete().eq('id','${f.id}').then(()=>loadSettingsData())">✕</button></div>`
+            ).join('') || '<div style="color:#888;">無好友</div>';
+            const { data: targets } = await supabase.from('static_targets').select('*').eq('user_id', currentUser.id);
+            document.getElementById('targetList').innerHTML = (targets || []).map(t =>
+                `<div class="list-row"><span>📍 ${t.name}</span><button class="btn btn-danger" onclick="supabase.from('static_targets').delete().eq('id','${t.id}').then(()=>loadSettingsData())">✕</button></div>`
+            ).join('') || '<div style="color:#888;">無定點</div>';
+            loadEmailSettingsFromStorage();
         }
 
+        function saveEmailSettings() {
+            const s = { publicKey: document.getElementById('emailjsPublicKey').value, serviceId: document.getElementById(
+                    'emailjsServiceId').value, templateId: document.getElementById('emailjsTemplateId').value,
+                defaultRecipient: document.getElementById('defaultRecipient').value };
+            localStorage.setItem('emailjs_settings', JSON.stringify(s));
+            if (s.publicKey && window.emailjs) window.emailjs.init(s.publicKey);
+            showToast('💾 已儲存', 'success');
+        }
+
+        function loadEmailSettingsFromStorage() {
+            const s = JSON.parse(localStorage.getItem('emailjs_settings') || '{}');
+            if (s.publicKey) document.getElementById('emailjsPublicKey').value = s.publicKey;
+            if (s.serviceId) document.getElementById('emailjsServiceId').value = s.serviceId;
+            if (s.templateId) document.getElementById('emailjsTemplateId').value = s.templateId;
+            if (s.defaultRecipient) document.getElementById('defaultRecipient').value = s.defaultRecipient;
+        }
+
+        function testEmailConfig() {
+            const pk = document.getElementById('emailjsPublicKey').value;
+            const sid = document.getElementById('emailjsServiceId').value;
+            const tid = document.getElementById('emailjsTemplateId').value;
+            const rec = document.getElementById('defaultRecipient').value;
+            if (!pk || !sid || !tid || !rec) { showToast('⚠️ 請完整填寫', 'error'); return; }
+            window.emailjs.init(pk);
+            window.emailjs.send(sid, tid, { to_email: rec, location_name: '測試', distance_m: '50m' }).then(() => showToast(
+                '✅ 已發送', 'success')).catch(e => showToast('❌ ' + e.message, 'error'));
+        }
+
+        function initGoogleAutocomplete() {
+            const input = document.getElementById('geoSearchInput');
+            if (typeof google === 'undefined' || !input) return;
+            const autocomplete = new google.maps.places.Autocomplete(input, { componentRestrictions: { country: 'tw' } });
+            autocomplete.addListener('place_changed', () => {
+                const place = autocomplete.getPlace();
+                if (!place.geometry) return;
+                document.getElementById('tName').value = place.name;
+                currentPosition = { lat: place.geometry.location.lat(), lng: place.geometry.location.lng() };
+                if (radarMap) radarMap.setView([currentPosition.lat, currentPosition.lng], 16);
+            });
+        }
+
+        // ==================== 初始化 ====================
         window.onload = async function() {
             try {
-                await window.dbClient.rpc('increment_page_view');
-                const res = await window.dbClient.auth.getSession();
-                if(res.data?.session?.user) { currentUser = res.data.session.user; enterMainApp(); }
-                else { document.getElementById('connStatus').textContent = '🟢 主機已就緒，請驗證登入'; }
-            } catch(err) {}
+                await supabase.rpc('increment_page_view');
+                const { data } = await supabase.auth.getSession();
+                if (data?.session?.user) { currentUser = data.session.user;
+                    enterMainApp(); } else { document.getElementById('connStatus').textContent = '🟢 請登入'; }
+            } catch (e) { document.getElementById('connStatus').textContent = '🔴 連線失敗'; }
         };
     </script>
 </body>
