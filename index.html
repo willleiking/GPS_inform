@@ -668,7 +668,7 @@
             if(res.data) {
                 res.data.forEach(t => {
                     const dist = calcDistance(currentPosition.lat, currentPosition.lng, t.current_lat, t.current_lng);
-                    if (dist > 10000) return; 
+                    // if (dist > 10000) return;
                     html += `
                     <div class='list-row'>
                         <span>🏷️ <b>${t.team_name}</b> <small style='color:#888;'>(${(dist/1000).toFixed(1)}km)</small></span>
