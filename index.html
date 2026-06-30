@@ -572,11 +572,70 @@
                     </div>` : '';
 
                 marker.bindPopup(`
-                    <div style="color:#333; min-width:160px; text-align:center;">
-                        <b>👤 ${u.nickname}</b><br>
-                        <span>職責: ${u.current_team_id ? (u.is_teaming?'隊長':'隊員'):'散人'}</span><br>
-                        ${teamBox}
+                <div style="
+                    color:#333;
+                    min-width:220px;
+                    text-align:center;
+                    font-family:sans-serif;
+                ">
+                
+                    <img
+                        src="${u.avatar_url || DEFAULT_AVATAR}"
+                        style="
+                            width:70px;
+                            height:70px;
+                            border-radius:50%;
+                            object-fit:cover;
+                            border:3px solid #2ecc71;
+                            margin-bottom:8px;
+                        "
+                    >
+                
+                    <div style="
+                        font-size:16px;
+                        font-weight:bold;
+                        margin-bottom:4px;
+                    ">
+                        👤 ${u.nickname}
                     </div>
+                
+                    <div style="
+                        font-size:12px;
+                        color:#666;
+                        margin-bottom:8px;
+                    ">
+                        ${u.current_team_id
+                            ? (u.is_teaming ? '🏆 隊長' : '👥 隊員')
+                            : '🚶 散人'}
+                    </div>
+                
+                    <div style="
+                        background:#f5f5f5;
+                        padding:6px;
+                        border-radius:6px;
+                        margin-bottom:6px;
+                        text-align:left;
+                        font-size:12px;
+                    ">
+                        <b>💼 我的資源</b><br>
+                        ${u.has_what || '尚未填寫'}
+                    </div>
+                
+                    <div style="
+                        background:#eef8ff;
+                        padding:6px;
+                        border-radius:6px;
+                        margin-bottom:6px;
+                        text-align:left;
+                        font-size:12px;
+                    ">
+                        <b>🎯 配對需求</b><br>
+                        ${u.need_what || '尚未填寫'}
+                    </div>
+                
+                    ${teamBox}
+                
+                </div>
                 `);
                 mapElements.push(marker);
 
