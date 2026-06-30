@@ -374,7 +374,20 @@
                     await window.dbClient.from('profiles').update({ current_team_id: null, is_teaming: false, team_name: null }).eq('current_team_id', currentUser.id);
                     showToast('🛑 隊伍已解散！', 'info');
                 } else {
-                    await window.dbClient.from('profiles').update({ current_team_id: null }).eq('id', currentUser.id);
+                    const oldTeamId = myProfile.current_team_id;
+                    // 先發送系統訊息
+                    await window.dbClient.from('friend_messages').insert({sender_id: currentUser.id,receiver_id: oldTeamId,message: `🔴 ${currentUser.nickname} 已退出組隊`
+                    });
+                    
+                    // 再退出隊伍
+                    await window.dbClient
+                    .from('profiles')
+                    .update({
+                        current_team_id: null,
+                        is_teaming: false
+                    })
+                    .eq('id', currentUser.id);
+                    
                     showToast('🛑 已退出隊伍！', 'info');
                 }
                 document.getElementById('myActiveTeamStatus').textContent = '當前狀態：未開啟組隊';
@@ -384,14 +397,18 @@
 
         async function joinTeamGroup(leaderId, leaderName) {
             await window.dbClient.from('profiles').update({ current_team_id: leaderId }).eq('id', currentUser.id);
+            await window.dbClient
+            .from('friend_messages')
+            .insert({
+                sender_id: currentUser.id,
+                receiver_id: tId,
+                message: `🟢 ${currentUser.nickname} 已加入組隊`
+            });
+            
             showToast(`🎉 成功加入 ${leaderName} 的組隊！進入組隊專屬頻道。`, 'success');
+            
             refreshPartyWindow();
-        }
-
-        async function kickMember(userId, name) {
-            await window.dbClient.from('profiles').update({ current_team_id: null }).eq('id', userId);
-            showToast(`❌ 已將 ${name} 踢出隊伍！`, 'info');
-            refreshPartyWindow();
+            loadPartyChatMessages();
         }
 
         async function transferLeader(newLeaderId, name) {
