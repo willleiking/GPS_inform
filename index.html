@@ -365,12 +365,29 @@
             if(enable && !title) { showToast('⚠️ 請輸入組隊名稱', 'error'); return; }
             
             if(enable) {
-                await window.dbClient.from('profiles').update({ is_teaming: true, team_name: title, team_category: cat, current_team_id: currentUser.id }).eq('id', currentUser.id);
-                document.getElementById('myActiveTeamStatus').textContent = `🟢 隊伍招募中: ${title}`;
+                await window.dbClient
+                .from('profiles')
+                .update({
+                    is_teaming:true,
+                    team_name:title,
+                    team_category:cat,
+                    current_team_id:currentUser.id
+                })
+                .eq('id', currentUser.id);
+                
+                await window.dbClient
+                .from('friend_messages')
+                .insert({
+                    sender_id: currentUser.id,
+                    receiver_id: currentUser.id,
+                    message: `👑 ${currentUser.nickname} 建立了隊伍【${title}】`
+                });
+                
                 showToast('🔥 已成功創建組隊！', 'success');
             } else {
                 const myProfile = await window.dbClient.from('profiles').select('current_team_id').eq('id', currentUser.id).single();
                 if(myProfile.data && myProfile.data.current_team_id === currentUser.id) {
+                    await window.dbClient.from('friend_messages').insert({sender_id: currentUser.id,receiver_id: currentUser.id,message: `👑 ${currentUser.nickname} 解散了隊伍`});
                     await window.dbClient.from('profiles').update({ current_team_id: null, is_teaming: false, team_name: null }).eq('current_team_id', currentUser.id);
                     showToast('🛑 隊伍已解散！', 'info');
                 } else {
@@ -401,7 +418,7 @@
             .from('friend_messages')
             .insert({
                 sender_id: currentUser.id,
-                receiver_id: tId,
+                receiver_id: receiver_id: leaderId,
                 message: `🟢 ${currentUser.nickname} 已加入組隊`
             });
             
@@ -415,6 +432,7 @@
             await window.dbClient.from('profiles').update({ current_team_id: newLeaderId }).eq('current_team_id', currentUser.id);
             const target = await window.dbClient.from('profiles').select('team_name, team_category').eq('id', currentUser.id).single();
             await window.dbClient.from('profiles').update({ is_teaming: true, team_name: target.data?.team_name || '新隊長隊伍', team_category: target.data?.team_category || '商務交流' }).eq('id', newLeaderId);
+            const newLeader =await window.dbClient.from('profiles').select('nickname').eq('id', newLeaderId).single();await window.dbClient.from('friend_messages').insert({sender_id: currentUser.id,receiver_id: newLeaderId,message: `🎯 ${newLeader.data.nickname} 成為新隊長`});
             await window.dbClient.from('profiles').update({ is_teaming: false, team_name: null }).eq('id', currentUser.id);
             showToast(`👑 已將隊長特權移交給 ${name}！`, 'success');
             refreshPartyWindow();
@@ -488,6 +506,7 @@
                 res.data.forEach(m => {
                     const sender = profiles.data?.find(x => x.id === m.sender_id);
                     const name = sender ? sender.nickname : '未知組員';
+                    const isSystem = m.message.startsWith('👑') ||  m.message.startsWith('🎯') || m.message.startsWith('🟢') || m.message.startsWith('🔴');
                     let side = m.sender_id === currentUser.id ? 'msg-me' : 'msg-other';
                     const timeStr = new Date(m.created_at)
                         .toLocaleTimeString('zh-TW',{
@@ -497,7 +516,29 @@
                         });
                     
                     html += `
+                    if(isSystem){
+                    html += `
+                    <div class="msg-line msg-system">
+                        ${m.message}
+                    </div>
+                    `;
+                
+                }else{
+                
+                    html += `
                     <div class="msg-line ${side}">
+                        <b>${name}</b>
+                        <span style="
+                            font-size:11px;
+                            opacity:.65;
+                            margin:0 4px;
+                        ">
+                            ${timeStr}
+                        </span>
+                        ：${m.message}
+                    </div>
+                    `;
+                }
                         <b>${name}</b>
                         <span style="
                             font-size:11px;
