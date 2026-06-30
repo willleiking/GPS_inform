@@ -1029,14 +1029,45 @@
             });
         }
 
-        // ==================== 初始化 ====================
+        // ==================== 初始化（修復版）====================
         window.onload = async function() {
+            const statusEl = document.getElementById('connStatus');
+            
             try {
-                await supabase.rpc('increment_page_view');
-                const { data } = await supabase.auth.getSession();
-                if (data?.session?.user) { currentUser = data.session.user;
-                    enterMainApp(); } else { document.getElementById('connStatus').textContent = '🟢 請登入'; }
-            } catch (e) { document.getElementById('connStatus').textContent = '🔴 連線失敗'; }
+                // 先測試基本連線
+                const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+                
+                if (sessionError) {
+                    console.error('Session 錯誤:', sessionError);
+                    statusEl.textContent = '🔴 連線失敗：' + sessionError.message;
+                    statusEl.style.color = '#e74c3c';
+                    return;
+                }
+                
+                // 嘗試呼叫 RPC（即使失敗也不影響登入）
+                try {
+                    await supabase.rpc('increment_page_view');
+                    console.log('✅ RPC 呼叫成功');
+                } catch (rpcErr) {
+                    console.warn('⚠️ RPC 呼叫失敗（不影響登入）:', rpcErr.message);
+                }
+                
+                // 檢查是否已登入
+                if (sessionData?.session?.user) {
+                    currentUser = sessionData.session.user;
+                    statusEl.textContent = '🟢 已連線，正在進入...';
+                    statusEl.style.color = '#2ecc71';
+                    enterMainApp();
+                } else {
+                    statusEl.textContent = '🟢 主機已就緒，請登入';
+                    statusEl.style.color = '#2ecc71';
+                }
+                
+            } catch (e) {
+                console.error('初始化錯誤:', e);
+                statusEl.textContent = '🔴 初始化失敗：' + e.message;
+                statusEl.style.color = '#e74c3c';
+            }
         };
     </script>
 </body>
