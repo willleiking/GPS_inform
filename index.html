@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>🟢 TribeRadar 終極引力雷達 V4.5 - 遊戲級組隊完全體</title>
+    <title>🟢 TribeRadar 終極引力雷達 V4.6 - 線上遊戲組隊完全體</title>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -108,8 +108,9 @@
             <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
                 <button class="btn btn-primary" id="trackBtn" onclick="toggleTracking(); logFeatureClick('雷達實時掃描');" style="flex:1;">▶️ 啟動雷達實時掃描</button>
                 <label style="font-size:0.8rem; color:#fff; display:flex; align-items:center; gap:4px; white-space:nowrap;">
-                    <input type="checkbox" id="shieldToggle" onchange="updateShieldStatus()"> 🛑 隱形屏蔽(不被搜)
+                    <input type="checkbox" id="shieldToggle" onchange="updateShieldStatus()"> 🛑 隱形屏蔽
                 </label>
+                <button class="btn btn-outline" style="color:#e74c3c; border-color:#e74c3c; border-radius:20px; padding: 10px 14px;" onclick="handleLogout()">🚪 登出系統</button>
             </div>
             <div class="grid-2">
                 <div>
@@ -286,6 +287,34 @@
             } catch(e) { showToast(e.message, 'error'); }
         }
 
+        // ==================== [🚪全新] 登出與變更在線狀態邏輯 ====================
+        async function handleLogout() {
+            try {
+                if (currentUser) {
+                    // 1. 如果有開啟實時追蹤，先關閉
+                    if (tracking && watchId) {
+                        navigator.geolocation.clearWatch(watchId);
+                        tracking = false;
+                        document.getElementById('trackBtn').textContent = '▶️ 啟動雷達實時掃描';
+                        document.getElementById('sweeperEl').style.display = 'none';
+                    }
+                    // 2. 將雲端上的在線與定位狀態改為離線
+                    await window.dbClient.from('profiles').update({ is_online: false }).eq('id', currentUser.id);
+                }
+                // 3. 呼叫 Supabase 登出協議
+                await window.dbClient.auth.signOut();
+                currentUser = null;
+                
+                // 4. 切換畫面回登入頁，並彈出提示
+                document.getElementById('mainApp').classList.add('hidden');
+                document.getElementById('authPage').classList.remove('hidden');
+                document.getElementById('authPassword').value = ''; // 清空密碼欄
+                showToast('🚪 帳號已安全登出，可換帳號登入！', 'success');
+            } catch (e) {
+                showToast('登出發生錯誤: ' + e.message, 'error');
+            }
+        }
+
         async function loadProfileData() {
             const res = await window.dbClient.from('profiles').select('*').eq('id', currentUser.id).single();
             if(res.data) {
@@ -313,19 +342,16 @@
             await window.dbClient.from('profiles').update({ is_shielded: document.getElementById('shieldToggle').checked }).eq('id', currentUser.id);
         }
 
-        // ==================== 升級版：發起/關閉組隊與退隊機制 ====================
         async function changeTeamStatus(enable) {
             const title = document.getElementById('teamTitle').value.trim();
             const cat = document.getElementById('teamCategory').value;
             if(enable && !title) { showToast('⚠️ 請輸入組隊名稱', 'error'); return; }
             
             if(enable) {
-                // 發起組隊：自己變成隊長
                 await window.dbClient.from('profiles').update({ is_teaming: true, team_name: title, team_category: cat, current_team_id: currentUser.id }).eq('id', currentUser.id);
                 document.getElementById('myActiveTeamStatus').textContent = `🟢 隊伍招募中: ${title}`;
                 showToast('🔥 已成功創建組隊！', 'success');
             } else {
-                // 退出或解散：如果是隊長，把隊伍裡所有人的隊伍ID清空
                 const myProfile = await window.dbClient.from('profiles').select('current_team_id').eq('id', currentUser.id).single();
                 if(myProfile.data && myProfile.data.current_team_id === currentUser.id) {
                     await window.dbClient.from('profiles').update({ current_team_id: null, is_teaming: false, team_name: null }).eq('current_team_id', currentUser.id);
@@ -345,7 +371,6 @@
             refreshPartyWindow();
         }
 
-        // ==================== [🔥全新] 核心特權：踢除成員、轉讓隊長 ====================
         async function kickMember(userId, name) {
             await window.dbClient.from('profiles').update({ current_team_id: null }).eq('id', userId);
             showToast(`❌ 已將 ${name} 踢出隊伍！`, 'info');
@@ -353,20 +378,16 @@
         }
 
         async function transferLeader(newLeaderId, name) {
-            // 1. 先把全隊原本綁定舊隊長的人，轉綁給新隊長
             await window.dbClient.from('profiles').update({ current_team_id: newLeaderId }).eq('current_team_id', currentUser.id);
-            // 2. 將新隊長設為發起狀態
             const target = await window.dbClient.from('profiles').select('team_name, team_category').eq('id', currentUser.id).single();
             await window.dbClient.from('profiles').update({ is_teaming: true, team_name: target.data?.team_name || '新隊長隊伍', team_category: target.data?.team_category || '商務交流' }).eq('id', newLeaderId);
-            // 3. 自己卸任隊長
             await window.dbClient.from('profiles').update({ is_teaming: false, team_name: null }).eq('id', currentUser.id);
-            
             showToast(`👑 已將隊長特權移交給 ${name}！`, 'success');
             refreshPartyWindow();
         }
 
-        // ==================== [🔥全新] 實時更新隊伍視窗 (Party Window) ====================
         async function refreshPartyWindow() {
+            if (!currentUser) return;
             const myRes = await window.dbClient.from('profiles').select('current_team_id').eq('id', currentUser.id).single();
             const tId = myRes.data?.current_team_id;
             const container = document.getElementById('partyMemberList');
@@ -406,8 +427,8 @@
             container.innerHTML = html;
         }
 
-        // ==================== [🔥全新] 組隊聊天室邏輯 (利用 friend_messages 專用協定模擬公頻) ====================
         async function loadPartyChatMessages() {
+            if (!currentUser) return;
             const myRes = await window.dbClient.from('profiles').select('current_team_id').eq('id', currentUser.id).single();
             const tId = myRes.data?.current_team_id;
             const box = document.getElementById('partyChatBox');
@@ -416,17 +437,15 @@
                 return;
             }
 
-            // 抓取全隊成員 ID
             const mems = await window.dbClient.from('profiles').select('id').eq('current_team_id', tId);
             const ids = mems.data?.map(x => x.id) || [];
             if(ids.length === 0) return;
 
-            // 撈取發給隊長的特製通訊識別訊息當作公頻
             const twentyDaysAgo = new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString();
             const res = await window.dbClient.from('friend_messages')
                 .select('*')
                 .gte('created_at', twentyDaysAgo)
-                .eq('receiver_id', tId) // 特徵：收件人全為該隊隊長 ID
+                .eq('receiver_id', tId)
                 .order('created_at', { ascending: true });
 
             const profiles = await window.dbClient.from('profiles').select('id, nickname');
@@ -450,13 +469,11 @@
             const tId = myRes.data?.current_team_id;
             if(!tId) { showToast('⚠️ 目前不屬於任何隊伍，無法發言', 'error'); return; }
 
-            // 廣播機制：將訊息的目的地設為隊長ID作為組隊房間鎖頭
             await window.dbClient.from('friend_messages').insert({ sender_id: currentUser.id, receiver_id: tId, message: text });
             input.value = '';
             loadPartyChatMessages();
         }
 
-        // ==================== 升級版：地圖繪製與雷達虛線動態連線 (引力射線) ====================
         function initRadarMap(lat, lng) {
             if (radarMap) { radarMap.setView([lat, lng]); myMarker.setLatLng([lat, lng]); radarCircle.setLatLng([lat, lng]); return; }
             radarMap = L.map('radarMap', { zoomControl: false, attributionControl: false }).setView([lat, lng], 14);
@@ -473,6 +490,7 @@
                 mapElements.forEach(el => radarMap.removeLayer(el)); mapElements = [];
             } else {
                 watchId = navigator.geolocation.watchPosition(async function(pos) {
+                    if (!currentUser) return;
                     currentPosition = { lat: pos.coords.latitude, lng: pos.coords.longitude };
                     initRadarMap(currentPosition.lat, currentPosition.lng);
                     await window.dbClient.from('profiles').update({ current_lat: currentPosition.lat, current_lng: currentPosition.lng, is_online: true }).eq('id', currentUser.id);
@@ -483,7 +501,7 @@
         }
 
         async function refreshRadarMarkers() {
-            if(!radarMap || !tracking) return;
+            if(!radarMap || !tracking || !currentUser) return;
             mapElements.forEach(el => radarMap.removeLayer(el)); mapElements = [];
 
             const myRes = await window.dbClient.from('profiles').select('current_team_id').eq('id', currentUser.id).single();
@@ -492,7 +510,6 @@
             const uRes = await window.dbClient.from('profiles').select('*').not('current_lat', 'is', null).eq('is_shielded', false);
             const users = uRes.data || [];
 
-            // 找出隊長位置，用來連線
             let leadersGeoMap = {};
             users.forEach(u => { if(u.is_teaming) leadersGeoMap[u.id] = [u.current_lat, u.current_lng]; });
 
@@ -501,7 +518,6 @@
                 const dist = calcDistance(currentPosition.lat, currentPosition.lng, u.current_lat, u.current_lng);
                 if(dist > 1500) return;
 
-                // 判斷是不是同隊成員
                 const isSameTeam = (myTeamId && u.current_team_id === myTeamId);
                 let markerColor = u.is_teaming ? 'var(--team-color)' : (isSameTeam ? 'var(--friend-color)' : 'var(--stranger-color)');
                 
@@ -528,7 +544,6 @@
                 `);
                 mapElements.push(marker);
 
-                // [🔥核心劃線功能] 如果跟我是同一個隊伍，且隊伍的隊長有點位，就在地圖上拉一條 RO 虛線
                 if(u.current_team_id && leadersGeoMap[u.current_team_id]) {
                     const leaderPos = leadersGeoMap[u.current_team_id];
                     const polyline = L.polyline([leaderPos, [u.current_lat, u.current_lng]], {
@@ -541,7 +556,6 @@
                 }
             });
             
-            // 我自己如果也是某個隊伍的隊員，也要連回隊長
             if(myTeamId && leadersGeoMap[myTeamId] && leadersGeoMap[myTeamId][0] !== currentPosition.lat) {
                 const myLine = L.polyline([leadersGeoMap[myTeamId], [currentPosition.lat, currentPosition.lng]], {
                     color: 'var(--accent)',
@@ -593,8 +607,8 @@
             document.getElementById('authPage').classList.add('hidden'); document.getElementById('mainApp').classList.remove('hidden'); 
             loadProfileData(); loadTeamNoticeBoard(); loadDashboardMetrics(); refreshPartyWindow(); loadPartyChatMessages();
             setTimeout(() => { initRadarMap(25.0451, 121.4525); initGoogleAutocomplete(); }, 300); 
-            setInterval(() => { 
-                if(tracking) { refreshRadarMarkers(); loadTeamNoticeBoard(); refreshPartyWindow(); loadPartyChatMessages(); } 
+            window.appInterval = setInterval(() => { 
+                if(tracking && currentUser) { refreshRadarMarkers(); loadTeamNoticeBoard(); refreshPartyWindow(); loadPartyChatMessages(); } 
             }, 5000);
         }
 
