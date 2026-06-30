@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>🟢 TribeRadar 終極引力雷達 V4.6 - 線上遊戲組隊完全體</title>
+    <title>🟢 TribeRadar 終極引力雷達 V4.7 - 線上遊戲組隊完全體</title>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -37,7 +37,7 @@
         .btn-outline { background: transparent; color: var(--accent); border: 1px solid var(--accent); border-radius: 20px; padding: 6px 12px; font-size: 0.8rem; }
         .btn-danger { background: transparent; color: #e74c3c; border: 1px solid #e74c3c; border-radius: 50%; width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; padding: 0; cursor: pointer; }
         .btn-action { background: var(--team-color); color: #fff; padding: 4px 8px; font-size: 0.75rem; border-radius: 4px; margin-top: 5px; width: 100%; cursor: pointer; border: none; }
-        .btn-game { padding: 2px 6px; font-size: 0.7rem; border-radius: 4px; border: none; cursor: pointer; font-weight: bold; margin-left: 4px; }
+        .btn-game { padding: 2px 6px; font-size: 0.7 ceramic; border-radius: 4px; border: none; cursor: pointer; font-weight: bold; margin-left: 4px; }
         
         select, input, textarea { background: var(--surface2); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 10px; color: #fff; outline: none; font-size: 0.85rem; width: 100%; }
         textarea { resize: none; height: 60px; }
@@ -58,7 +58,7 @@
 
         .list-row { background: var(--surface2); border-radius: 8px; padding: 10px; display: flex; align-items: center; justify-content: space-between; font-size: 0.85rem; }
         .avatar-preview { width: 55px; height: 55px; border-radius: 50%; object-fit: cover; border: 2px solid var(--accent); margin: 0 auto; display: block; background: #222; }
-        .tag-badge { background: rgba(46,204,113,0.15); color: var(--accent); padding: 2px 6px; border-radius: 4px; font-size: 0.7 ceramic; margin-right: 4px; }
+        .tag-badge { background: rgba(46,204,113,0.15); color: var(--accent); padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; margin-right: 4px; }
         .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
         .hidden { display: none !important; }
         
@@ -269,46 +269,63 @@
 
         function previewAvatarUrl() { document.getElementById('myAvatarDisplay').src = document.getElementById('avatarUrlInput').value || DEFAULT_AVATAR; }
 
+        // ==================== [🛠️修復] 註冊 Null 檢查與安全解構 ====================
         async function handleAuth() {
             const email = document.getElementById('authEmail').value.trim();
             const password = document.getElementById('authPassword').value;
+            
+            if (!email || !password) {
+                showToast('⚠️ 請輸入完整的帳號與密碼', 'error');
+                return;
+            }
+
             try {
                 if(isRegister) {
-                    const nick = document.getElementById('authNickname').value.trim() || '成員';
-                    const res = await window.dbClient.auth.signUp({ email: email, password: password });
-                    if(res.data.user) await window.dbClient.from('profiles').insert({ id: res.data.user.id, email: email, nickname: nick, login_count: 1 });
-                    showToast('註冊成功！', 'success'); toggleAuthMode();
+                    const nick = document.getElementById('authNickname').value.trim() || '新成員';
+                    const { data, error } = await window.dbClient.auth.signUp({ email: email, password: password });
+                    
+                    if (error) throw error;
+                    
+                    // 檢查是否因啟用 Email 驗證導致 user 為 null 或需要確認
+                    if (data && data.user) {
+                        await window.dbClient.from('profiles').insert({ id: data.user.id, email: email, nickname: nick, login_count: 1 });
+                        showToast('🎉 註冊成功！已切換回登入畫面。', 'success');
+                        toggleAuthMode();
+                    } else {
+                        // Supabase 預設若開啟 Email Confirmation，在未驗證前可能不會立刻回傳 user session
+                        showToast('📩 註冊驗證信已寄出，請至信箱確認後再行登入！', 'match');
+                        toggleAuthMode();
+                    }
                 } else {
-                    const res = await window.dbClient.auth.signInWithPassword({ email: email, password: password });
-                    currentUser = res.data.user;
+                    const { data, error } = await window.dbClient.auth.signInWithPassword({ email: email, password: password });
+                    if (error) throw error;
+                    
+                    currentUser = data.user;
                     await window.dbClient.from('profiles').update({ is_online: true }).eq('id', currentUser.id);
                     enterMainApp();
                 }
-            } catch(e) { showToast(e.message, 'error'); }
+            } catch(e) { 
+                showToast('驗證失敗: ' + e.message, 'error'); 
+            }
         }
 
-        // ==================== [🚪全新] 登出與變更在線狀態邏輯 ====================
         async function handleLogout() {
             try {
                 if (currentUser) {
-                    // 1. 如果有開啟實時追蹤，先關閉
                     if (tracking && watchId) {
                         navigator.geolocation.clearWatch(watchId);
                         tracking = false;
                         document.getElementById('trackBtn').textContent = '▶️ 啟動雷達實時掃描';
                         document.getElementById('sweeperEl').style.display = 'none';
                     }
-                    // 2. 將雲端上的在線與定位狀態改為離線
                     await window.dbClient.from('profiles').update({ is_online: false }).eq('id', currentUser.id);
                 }
-                // 3. 呼叫 Supabase 登出協議
                 await window.dbClient.auth.signOut();
                 currentUser = null;
                 
-                // 4. 切換畫面回登入頁，並彈出提示
                 document.getElementById('mainApp').classList.add('hidden');
                 document.getElementById('authPage').classList.remove('hidden');
-                document.getElementById('authPassword').value = ''; // 清空密碼欄
+                document.getElementById('authPassword').value = ''; 
                 showToast('🚪 帳號已安全登出，可換帳號登入！', 'success');
             } catch (e) {
                 showToast('登出發生錯誤: ' + e.message, 'error');
@@ -585,10 +602,12 @@
         }
 
         async function loadDashboardMetrics() {
-            const viewsRes = await window.dbClient.from('site_metrics').select('metric_value').eq('metric_key', 'total_page_views').single();
-            document.getElementById('statPageViews').textContent = viewsRes.data?.metric_value || 0;
-            const onlineRes = await window.dbClient.from('profiles').select('id', { count: 'exact', head: true }).eq('is_online', true);
-            document.getElementById('statActiveUsers').textContent = onlineRes.count || 0;
+            try {
+                const viewsRes = await window.dbClient.from('site_metrics').select('metric_value').eq('metric_key', 'total_page_views').single();
+                document.getElementById('statPageViews').textContent = viewsRes.data?.metric_value || 0;
+                const onlineRes = await window.dbClient.from('profiles').select('id', { count: 'exact', head: true }).eq('is_online', true);
+                document.getElementById('statActiveUsers').textContent = onlineRes.count || 0;
+            } catch(e) {}
         }
 
         async function addFriend() {
