@@ -58,7 +58,7 @@
 
         .list-row { background: var(--surface2); border-radius: 8px; padding: 10px; display: flex; align-items: center; justify-content: space-between; font-size: 0.85rem; }
         .avatar-preview { width: 55px; height: 55px; border-radius: 50%; object-fit: cover; border: 2px solid var(--accent); margin: 0 auto; display: block; background: #222; }
-        .tag-badge { background: rgba(46,204,113,0.15); color: var(--accent); padding: 2px 6px; border-radius: 4px; font-size: 0.7------rem; margin-right: 4px; }
+        .tag-badge { background: rgba(46,204,113,0.15); color: var(--accent); padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; margin-right: 4px; }
         .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
         .hidden { display: none !important; }
         
@@ -214,7 +214,9 @@
 
         <div class="card">
             <div class="card-title">📍 定點目標區域管理</div>
-            <div id="targetList" style="display:flex; flex-direction:column; gap:6px;"></div>
+            <div id="targetList" style="display:flex; flex-direction:column; gap:6px;">
+                <div style="font-size:0.75rem; text-align:center; padding:10px;">📂 暫無儲存的固定地點</div>
+            </div>
             <input type="text" id="geoSearchInput" placeholder="智慧地標搜尋定位...">
             <div class="hidden"><input type="text" id="tLat"><input type="text" id="tLng"></div>
             <input type="text" id="tName" placeholder="自設地點名稱">
@@ -298,7 +300,6 @@
                     if (error) throw error;
                     
                     currentUser = data.user;
-                    // 獲取使用者暱稱以確保全域調用正常
                     const profileRes = await window.dbClient.from('profiles').select('nickname').eq('id', currentUser.id).single();
                     if(profileRes.data) currentUser.nickname = profileRes.data.nickname;
 
@@ -361,7 +362,7 @@
             await window.dbClient.from('profiles').update({ is_shielded: document.getElementById('shieldToggle').checked }).eq('id', currentUser.id);
         }
 
-        // ==================== [🛠️修復與擴充] 建立隊伍、解散隊伍、退出隊伍 ====================
+        // ==================== 組隊狀態操控邏輯 ====================
         async function changeTeamStatus(enable) {
             const title = document.getElementById('teamTitle').value.trim();
             const cat = document.getElementById('teamCategory').value;
@@ -378,7 +379,7 @@
 
                 await window.dbClient.from('friend_messages').insert({
                     sender_id: currentUser.id,
-                    receiver_id: currentUser.id, // 隊長群頻道 ID 即為隊長自身的 UUID
+                    receiver_id: currentUser.id,
                     message: `👑 ${currentUser.nickname || '玩家'} 建立了隊伍【${title}】`
                 });
                 
@@ -396,11 +397,10 @@
                         message: `👑 ${currentUser.nickname || '玩家'} 解散了隊伍`
                     });
                     
-                    // 將所有該隊伍成員釋放回散人狀態
                     await window.dbClient.from('profiles').update({ current_team_id: null, is_teaming: false, team_name: null, team_category: null }).eq('current_team_id', currentUser.id);
                     showToast('🛑 隊伍已解散！', 'info');
                 } else if (oldTeamId) {
-                    // 🔴 🔴 退出組隊 (一般組員)
+                    // 🔴 🔴 退出組隊 (一般隊員)
                     await window.dbClient.from('friend_messages').insert({
                         sender_id: currentUser.id,
                         receiver_id: oldTeamId,
@@ -419,13 +419,12 @@
             loadPartyChatMessages();
         }
 
-        // ==================== [🛠️修復] 🟢 加入組隊 ====================
         async function joinTeamGroup(leaderId, leaderName) {
             await window.dbClient.from('profiles').update({ current_team_id: leaderId, is_teaming: false }).eq('id', currentUser.id);
             
             await window.dbClient.from('friend_messages').insert({
                 sender_id: currentUser.id,
-                receiver_id: leaderId, // 加入該隊長的公頻
+                receiver_id: leaderId,
                 message: `🟢 ${currentUser.nickname || '玩家'} 已加入組隊`
             });
             showToast(`🎉 成功加入 ${leaderName} 的組隊！進入組隊專屬頻道。`, 'success');
@@ -434,23 +433,19 @@
             loadPartyChatMessages();
         }
 
-        // ==================== [🛠️修復] 🎯 轉讓新隊長 ====================
         async function transferLeader(newLeaderId, name) {
             const target = await window.dbClient.from('profiles').select('team_name, team_category').eq('id', currentUser.id).single();
             const teamTitle = target.data?.team_name || '新隊長隊伍';
             const teamCat = target.data?.team_category || '商務交流';
 
-            // 1. 發送系統公告訊息到當前公頻 (目前的 receiver_id 還是原隊長也就是 currentUser.id)
             await window.dbClient.from('friend_messages').insert({
                 sender_id: currentUser.id,
                 receiver_id: currentUser.id,
                 message: `🎯 ${name} 成為新隊長`
             });
 
-            // 2. 更新原隊友們的 current_team_id 綁定至新隊長 UUID
             await window.dbClient.from('profiles').update({ current_team_id: newLeaderId }).eq('current_team_id', currentUser.id);
             
-            // 3. 升級新隊長權限
             await window.dbClient.from('profiles').update({ 
                 is_teaming: true, 
                 team_name: teamTitle, 
@@ -458,7 +453,6 @@
                 current_team_id: newLeaderId
             }).eq('id', newLeaderId);
 
-            // 4. 降級原隊長權限（變為該隊伍的普通隊員）
             await window.dbClient.from('profiles').update({ 
                 is_teaming: false, 
                 team_name: null,
@@ -466,7 +460,6 @@
                 current_team_id: newLeaderId 
             }).eq('id', currentUser.id);
 
-            // 5. 將先前的歷史紀錄複製或在新公頻同步建立一條新權杖公告
             await window.dbClient.from('friend_messages').insert({
                 sender_id: currentUser.id,
                 receiver_id: newLeaderId,
@@ -480,7 +473,6 @@
             loadPartyChatMessages();
         }
 
-        // ==================== ❌ 踢除隊員行為 ====================
         async function kickMember(targetId, name) {
             await window.dbClient.from('friend_messages').insert({
                 sender_id: currentUser.id,
@@ -533,7 +525,6 @@
             container.innerHTML = html;
         }
 
-        // ==================== [🛠️重大修復] 安全渲染聊天公頻文字 ====================
         async function loadPartyChatMessages() {
             if (!currentUser) return;
             const myRes = await window.dbClient.from('profiles').select('current_team_id').eq('id', currentUser.id).single();
@@ -559,7 +550,6 @@
                     const sender = profiles.data?.find(x => x.id === m.sender_id);
                     const name = sender ? sender.nickname : '未知組員';
                     
-                    // 偵測是否為系統指令圖示開頭
                     const isSystem = m.message.startsWith('👑') || m.message.startsWith('🎯') || m.message.startsWith('🟢') || m.message.startsWith('🔴');
                     let side = m.sender_id === currentUser.id ? 'msg-me' : 'msg-other';
                     const timeStr = new Date(m.created_at).toLocaleTimeString('zh-TW',{ hour:'2-digit', minute:'2-digit', hour12:false });
@@ -696,6 +686,43 @@
                 }).addTo(radarMap);
                 mapElements.push(myLine);
             }
+
+            // ==================== [💡 定點目標即時渲染與清空管理邏輯] ====================
+            const showTargetsChecked = document.getElementById('showTargets').checked;
+            const targetListEl = document.getElementById('targetList');
+            
+            if (showTargetsChecked) {
+                window.dbClient.from('static_targets').select('*').eq('user_id', currentUser.id)
+                .then(res => {
+                    const targets = res.data || [];
+                    let listHtml = '';
+                    
+                    targets.forEach(t => {
+                        // 1. 在地圖上加載綠色地標
+                        const tMarker = L.marker([t.lat, t.lng], { 
+                            icon: L.divIcon({ 
+                                html: `<div style="background:var(--target-color); width:14px; height:14px; border-radius:50%; border:2px solid #fff; box-shadow:0 0 10px var(--target-color);"></div>`, 
+                                iconSize: [14, 14] 
+                            }) 
+                        }).addTo(radarMap);
+                        
+                        tMarker.bindPopup(`<b>📍 固定地點</b><br>${t.name}`);
+                        mapElements.push(tMarker);
+                        
+                        // 2. 渲染下方的管理清單
+                        listHtml += `
+                            <div class="list-row" style="background: var(--surface2); border-left: 4px solid var(--target-color);">
+                                <span>🟢 <b>${t.name}</b></span>
+                                <button class="btn-game" style="background:#c0392b; color:#fff; padding: 4px 8px;" onclick="deleteStaticTarget('${t.id}')">❌ 刪除</button>
+                            </div>
+                        `;
+                    });
+                    
+                    targetListEl.innerHTML = listHtml || '<div style="font-size:0.75rem; text-align:center; padding:10px;">📂 暫無儲存的固定地點</div>';
+                });
+            } else {
+                targetListEl.innerHTML = '<div style="font-size:0.75rem; text-align:center; padding:10px; color:#888;">🛑 圖層已隱藏 (請勾選雷達圖層過濾)</div>';
+            }
         }
 
         async function loadTeamNoticeBoard() {
@@ -730,10 +757,50 @@
             document.getElementById('fEmail').value = ''; showToast('好友綁定成功');
         }
 
+        // ==================== 定點區域資料庫讀寫功能補全 ====================
         async function addStaticTarget() {
             const name = document.getElementById('tName').value.trim();
-            await window.dbClient.from('static_targets').insert({ user_id: currentUser.id, name: name, lat: currentPosition.lat, lng: currentPosition.lng });
-            showToast('定點已存入雲端');
+            let lat = document.getElementById('tLat').value;
+            let lng = document.getElementById('tLng').value;
+            
+            if (!name) { 
+                showToast('⚠️ 請輸入地點名稱', 'error'); 
+                return; 
+            }
+            
+            if (!lat || !lng) {
+                lat = currentPosition.lat;
+                lng = currentPosition.lng;
+            }
+
+            try {
+                await window.dbClient.from('static_targets').insert({ 
+                    user_id: currentUser.id, 
+                    name: name, 
+                    lat: parseFloat(lat), 
+                    lng: parseFloat(lng) 
+                });
+                showToast('📍 定點已存入雲端', 'success');
+                
+                document.getElementById('tName').value = '';
+                document.getElementById('geoSearchInput').value = '';
+                document.getElementById('tLat').value = '';
+                document.getElementById('tLng').value = '';
+                
+                refreshRadarMarkers();
+            } catch (e) {
+                showToast('儲存失敗: ' + e.message, 'error');
+            }
+        }
+
+        async function deleteStaticTarget(id) {
+            try {
+                await window.dbClient.from('static_targets').delete().eq('id', id);
+                showToast('🗑️ 定點已成功刪除', 'info');
+                refreshRadarMarkers();
+            } catch (e) {
+                showToast('刪除失敗: ' + e.message, 'error');
+            }
         }
 
         async function enterMainApp() { 
