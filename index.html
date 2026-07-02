@@ -3,12 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>🟢 TribeRadar 終極引力雷達 V5.0 - 完全體遊戲級組隊系統</title>
+    <title>🟢 TribeRadar 終極完全體 V5.5 - 線上組隊與精準人脈需求市場</title>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    
     <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyACxMPE_nMWpxsNNB_fW2TplflJJSI6sOs&libraries=places&language=zh-TW"></script>
 
     <style>
@@ -19,51 +18,68 @@
             --border: #2ecc7130;
             --text: #95a5a6;
             --accent: #2ecc71; 
+            --vip-color: #f1c40f;
+            --market-color: #e67e22;
             --friend-color: #3498db;
             --stranger-color: #f1c40f;
             --target-color: #2ecc71;
             --team-color: #e74c3c;
             --dashboard-color: #9b59b6;
-            --radius: 12px;
+            --radius: 14px;
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); padding: 10px; display: flex; flex-direction: column; align-items: center; }
         .app-container { width: 100%; max-width: 500px; display: flex; flex-direction: column; gap: 12px; }
-        .card { background: var(--surface); border-radius: var(--radius); border: 1px solid var(--border); padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+        .card { background: var(--surface); border-radius: var(--radius); border: 1px solid var(--border); padding: 16px; display: flex; flex-direction: column; gap: 12px; position: relative; overflow: hidden; }
         .card-title { font-size: 0.95rem; font-weight: 700; color: #fff; display: flex; align-items: center; justify-content: space-between; }
         
-        .btn { padding: 12px; border-radius: 20px; border: none; font-weight: 700; font-size: 0.85rem; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.2s; }
+        /* 頂部期待感與收穫感 Banner */
+        .summary-banner { background: linear-gradient(135deg, #111, var(--surface2)); border-left: 5px solid var(--accent); padding: 12px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+        .summary-stat { font-size: 0.8rem; color: #fff; line-height: 1.4; }
+        .summary-stat b { font-size: 1.1rem; color: var(--accent); }
+
+        .btn { padding: 12px; border-radius: 25px; border: none; font-weight: 700; font-size: 0.85rem; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.2s; }
         .btn-primary { background: var(--accent); color: #000; width: 100%; }
+        .btn-vip { background: linear-gradient(45deg, #f1c40f, #f39c12); color: #000; font-weight: 800; box-shadow: 0 0 10px rgba(241,196,15,0.4); }
         .btn-outline { background: transparent; color: var(--accent); border: 1px solid var(--accent); border-radius: 20px; padding: 6px 12px; font-size: 0.8rem; }
-        .btn-danger { background: transparent; color: #e74c3c; border: 1px solid #e74c3c; border-radius: 50%; width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; padding: 0; cursor: pointer; }
-        .btn-action { background: var(--team-color); color: #fff; padding: 4px 8px; font-size: 0.75rem; border-radius: 4px; margin-top: 5px; width: 100%; cursor: pointer; border: none; }
-        .btn-game { padding: 2px 6px; font-size: 0.7rem; border-radius: 4px; border: none; cursor: pointer; font-weight: bold; margin-left: 4px; }
-        
+        .btn-icebreaker { background: var(--surface2); color: #fff; border: 1px solid rgba(255,255,255,0.1); padding: 6px 10px; font-size: 0.75rem; border-radius: 6px; cursor: pointer; transition: 0.2s; }
+        .btn-icebreaker:hover { background: var(--accent); color: #000; }
+        .btn-game { padding: 4px 8px; font-size: 0.75rem; border-radius: 4px; border: none; cursor: pointer; font-weight: bold; }
+        .btn-action { background: var(--team-color); color: #fff; padding: 4px 8px; font-size: 0.75rem; border-radius: 4px; margin-top: 5px; width: 100%; cursor: pointer; border: none; font-weight: bold; }
+
         select, input, textarea { background: var(--surface2); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 10px; color: #fff; outline: none; font-size: 0.85rem; width: 100%; }
         textarea { resize: none; height: 60px; }
 
         /* 雷達盤面 */
         .radar-panel { position: relative; background: #070a0e; padding: 0; overflow: hidden; border-radius: var(--radius); border: 1px solid var(--border); }
-        .radar-outer { position: relative; width: 100%; padding-bottom: 100%; }
+        .radar-outer { position: relative; width: 100%; padding-bottom: 90%; height: 0; }
         #radarMap { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
         .radar-sweeper { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 2; pointer-events: none; border-radius: 50%; background: conic-gradient(from 0deg, rgba(46,204,113,0.12) 0deg, rgba(46,204,113,0) 90deg, transparent 360deg); animation: radar-sweep 4s infinite linear; display: none; }
         @keyframes radar-sweep { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
-        /* 列表與對話 */
-        .chat-box { background: var(--surface2); border-radius: 8px; height: 180px; overflow-y: auto; padding: 10px; font-size: 0.85rem; display: flex; flex-direction: column; gap: 6px; }
-        .msg-line { padding: 6px 10px; border-radius: 6px; max-width: 80%; word-break: break-all; font-size: 0.8rem; }
+        /* 聊天室 */
+        .chat-box { background: var(--surface2); border-radius: 8px; height: 160px; overflow-y: auto; padding: 10px; font-size: 0.85rem; display: flex; flex-direction: column; gap: 6px; }
+        .msg-line { padding: 6px 10px; border-radius: 6px; max-width: 85%; word-break: break-all; font-size: 0.8rem; }
         .msg-me { background: var(--accent); color: #000; align-self: flex-end; }
         .msg-other { background: #2c3e50; color: #fff; align-self: flex-start; }
-        .msg-system { background: rgba(231, 76, 60, 0.1); color: #e74c3c; align-self: center; text-align: center; width: 100%; max-width: 100%; font-size: 0.75rem; border: 1px dashed rgba(231,76,60,0.3); }
+        .msg-system { background: rgba(231, 76, 60, 0.1); color: #e74c3c; align-self: center; text-align: center; width: 100%; font-size: 0.75rem; border: 1px dashed rgba(231,76,60,0.3); }
 
         .list-row { background: var(--surface2); border-radius: 8px; padding: 10px; display: flex; align-items: center; justify-content: space-between; font-size: 0.85rem; }
         .avatar-preview { width: 55px; height: 55px; border-radius: 50%; object-fit: cover; border: 2px solid var(--accent); margin: 0 auto; display: block; background: #222; }
         .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-        .hidden { display: none !important; }
         
+        /* 心理學展示樣式 */
+        .peek-row { display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.03); padding: 10px; border-radius: 8px; font-size: 0.8rem; border-left: 3px solid var(--vip-color); }
+        .blur-text { filter: blur(4px); user-select: none; opacity: 0.6; }
+        .market-tag { background: rgba(230, 126, 34, 0.15); color: var(--market-color); border: 1px solid rgba(230, 126, 34, 0.3); padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; display: inline-block; }
+        .provide-tag { background: rgba(46, 204, 113, 0.15); color: var(--accent); border: 1px solid rgba(46, 204, 113, 0.3); padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; display: inline-block; }
+        .party-member-row { display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.03); border-left: 4px solid var(--team-color); padding: 8px; border-radius: 4px; margin-bottom: 4px; font-size: 0.8rem; }
+        .badge-red { background: #e74c3c; width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-left: 5px; box-shadow: 0 0 6px #e74c3c; }
+        .hidden { display: none !important; }
+
         .toast-container { position: fixed; top: 16px; left: 50%; transform: translateX(-50%); z-index: 9999; display: flex; flex-direction: column; gap: 6px; width: 90%; max-width: 400px; }
-        .toast { padding: 12px; border-radius: 8px; font-size: 0.8rem; text-align: center; color: #fff; font-weight: bold; }
-        .toast.match { background: #e67e22; box-shadow: 0 0 15px #e67e22; border: 2px solid #fff; }
+        .toast { padding: 12px; border-radius: 8px; font-size: 0.8rem; text-align: center; color: #fff; font-weight: bold; box-shadow: 0 4px 12px rgba(0,0,0,0.5); }
+        .toast.match { background: linear-gradient(135deg, #e67e22, #d35400); border: 1px solid #fff; }
         .toast.success { background: #27ae60; }
         .toast.error { background: #c0392b; }
 
@@ -71,13 +87,8 @@
         .stat-box { background: var(--surface2); padding: 8px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.05); }
         .stat-num { font-size: 1.2rem; font-weight: bold; color: #fff; margin-top: 2px; }
 
-        .party-member-row { display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.03); border-left: 4px solid var(--team-color); padding: 8px; border-radius: 4px; margin-bottom: 4px; font-size: 0.8rem; }
-        
-        /* 新增：未讀紅點樣式 */
-        .badge-red { background: #e74c3c; width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-left: 5px; box-shadow: 0 0 6px #e74c3c; }
-        
-        /* 新增：主動彈出式雷達通知（Pokemon GO 核心機制） */
-        .radar-popup-notification { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 380px; background: rgba(11,12,16,0.95); border: 2px solid var(--accent); border-radius: var(--radius); padding: 16px; box-shadow: 0 0 25px rgba(46,204,113,0.4); z-index: 10000; animation: popup-slide 0.3s ease-out; display: flex; flex-direction: column; gap: 10px; color: #fff; }
+        /* 300M 寶可夢式近身通知 */
+        .radar-popup-notification { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 380px; background: rgba(11,12,16,0.96); border: 2px solid var(--accent); border-radius: var(--radius); padding: 16px; box-shadow: 0 0 25px rgba(46,204,113,0.5); z-index: 10000; display: flex; flex-direction: column; gap: 10px; color: #fff; animation: popup-slide 0.3s ease-out; }
         @keyframes popup-slide { from { bottom: -100px; opacity: 0; } to { bottom: 20px; opacity: 1; } }
     </style>
 </head>
@@ -85,38 +96,45 @@
 
     <div class="toast-container" id="toastContainer"></div>
 
-    <!-- 突發近身玩家主動提示視窗 (300M 觸發) -->
     <div id="radarEncounterPopup" class="radar-popup-notification hidden">
-        <div style="font-size: 0.95rem; font-weight: bold; color: var(--accent); display:flex; align-items:center; gap:6px;">⚡ 附近出現新玩家</div>
+        <div style="font-size: 0.95rem; font-weight: bold; color: var(--accent); display:flex; align-items:center; gap:6px;">⚡ 附近引力圈出現新玩家！</div>
         <div style="display: flex; align-items: center; gap: 12px; background: rgba(255,255,255,0.03); padding: 8px; border-radius: 6px;">
             <img id="encounterAvatar" src="" style="width: 45px; height: 45px; border-radius: 50%; object-fit: cover; border: 2px solid var(--accent);">
             <div>
                 <div id="encounterName" style="font-weight: bold; font-size: 0.9rem;">玩家名稱</div>
-                <div id="encounterDist" style="font-size: 0.75rem; color: #888;">距離 180m</div>
+                <div id="encounterStatus" style="font-size: 0.75rem; color: var(--market-color); margin-top:2px;">正在做什麼...</div>
+                <div id="encounterDist" style="font-size: 0.7rem; color: #888; margin-top:2px;">距離 180m</div>
             </div>
         </div>
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-            <button class="btn" style="background: var(--accent); color: #000; padding: 6px; font-size: 0.8rem;" id="encounterViewBtn">🔬 查看</button>
-            <button class="btn" style="background: var(--surface2); color: #fff; padding: 6px; font-size: 0.8rem;" onclick="dismissEncounter()">⏳ 忽略</button>
+            <button class="btn" style="background: var(--accent); color: #000; padding: 6px; font-size: 0.8rem;" id="encounterViewBtn">🔬 立即雷達定位</button>
+            <button class="btn" style="background: var(--surface2); color: #fff; padding: 6px; font-size: 0.8rem;" onclick="document.getElementById('radarEncounterPopup').classList.add('hidden')">⏳ 暫時忽略</button>
         </div>
     </div>
 
     <div class="app-container" id="authPage">
         <div class="card" style="text-align:center;">
-            <h2 style="color:var(--accent)">🟢 TribeRadar 商務引力雷達</h2>
-            <p style="font-size:0.75rem; color:var(--accent);" id="connStatus">探索主機連線中...</p>
+            <h2 style="color:var(--accent)">🟢 TribeRadar 終極完全體 V5.5</h2>
+            <p style="font-size:0.75rem; color:#888;" id="connStatus">連接引力星網中...</p>
         </div>
         <div class="card">
             <input type="email" id="authEmail" placeholder="Email 帳號">
-            <input type="password" id="authPassword" placeholder="密碼 (至少6碼)">
-            <div class="hidden" id="nickGroup"><input type="text" id="authNickname" placeholder="設定探索暱稱"></div>
-            <button class="btn btn-primary" id="authActionBtn" onclick="handleAuth()">進入引力網格</button>
+            <input type="password" id="authPassword" placeholder="密碼 (至少6位碼)">
+            <div class="hidden" id="nickGroup"><input type="text" id="authNickname" placeholder="設定您的雷達公開暱稱"></div>
+            <button class="btn btn-primary" onclick="handleAuth()">進入引力雷達</button>
             <button class="btn btn-outline" id="authToggleBtn" onclick="toggleAuthMode()">初次探索？切換註冊</button>
         </div>
     </div>
 
     <div class="app-container hidden" id="mainApp">
         
+        <div class="summary-banner">
+            <div class="summary-stat" id="radarSummaryText">
+                📡 雷達波發射中...<br>請啟動監控解鎖今日地緣引力數據。
+            </div>
+            <button class="btn btn-vip" style="padding:6px 12px; font-size:0.75rem;" onclick="showVipModal()">升級 VIP 皇冠</button>
+        </div>
+
         <div class="card radar-panel">
             <div class="radar-outer">
                 <div id="radarMap"></div>
@@ -130,7 +148,7 @@
                 <label style="font-size:0.8rem; color:#fff; display:flex; align-items:center; gap:4px; white-space:nowrap;">
                     <input type="checkbox" id="shieldToggle" onchange="updateShieldStatus()"> 🛑 隱形屏蔽
                 </label>
-                <button class="btn btn-outline" style="color:#e74c3c; border-color:#e74c3c; border-radius:20px; padding: 10px 14px;" onclick="handleLogout()">🚪 登出系統</button>
+                <button class="btn btn-outline" style="color:#e74c3c; border-color:#e74c3c; padding:10px 14px; border-radius:20px;" onclick="handleLogout()">🚪 登出</button>
             </div>
             <div class="grid-2">
                 <div>
@@ -153,11 +171,51 @@
                     </div>
                 </div>
             </div>
-            <div id="geoStatus" style="font-size:0.7rem; font-family:monospace; text-align:center; color:var(--accent);">範圍規範：雷達僅偵測 1500M 內對象，超出範圍之使用者將自動隱形</div>
+            <div style="font-size:0.7rem; text-align:center; color:var(--accent);">免費範圍上限 1.5 KM | VIP 會員享 10 KM 雷達圈</div>
+        </div>
+
+        <div class="card" style="border: 2px dashed var(--market-color); background: rgba(230,126,34,0.02);">
+            <div class="card-title" style="color:var(--market-color)">🤝 附近的人脈與商機需求市場 (Marketplace)</div>
+            <div style="display:flex; flex-direction:column; gap:6px;">
+                <div>
+                    <span style="font-size:0.75rem; color:#fff;">⚡ 我目前正在做什麼 (精準現況狀態)：</span>
+                    <input type="text" id="myCurrentStatus" placeholder="例如：正在喝咖啡、尋找網站設計發案、找球友">
+                </div>
+                <div class="grid-2">
+                    <div>
+                        <span style="font-size:0.75rem; color:var(--accent);">🟢 我有 (提供什麼)：</span>
+                        <select id="myProvideTag">
+                            <option value="網站設計">網站設計</option>
+                            <option value="AI影片">AI影片</option>
+                            <option value="羽球教學">羽球教學</option>
+                            <option value="法律顧問">法律顧問</option>
+                            <option value="無">（無特別提供）</option>
+                        </select>
+                    </div>
+                    <div>
+                        <span style="font-size:0.75rem; color:var(--market-color);">🟠 我需要 (尋找什麼)：</span>
+                        <select id="myNeedTag">
+                            <option value="剪片">剪片</option>
+                            <option value="業務合作">業務合作</option>
+                            <option value="找球友">找球友</option>
+                            <option value="找工程師">找工程師</option>
+                            <option value="網站設計">網站設計</option>
+                        </select>
+                    </div>
+                </div>
+                <button class="btn btn-primary" style="background:var(--market-color); color:#fff; border-radius:8px; padding:10px;" onclick="saveMarketProfile()">💾 發布到附近人脈需求市場</button>
+            </div>
+        </div>
+
+        <div class="card" style="border: 1px solid var(--vip-color);">
+            <div class="card-title" style="color:var(--vip-color)">👀 誰看過我的引力檔案 (最近 7 天)</div>
+            <div id="viewerList" style="display:flex; flex-direction:column; gap:6px;">
+                <div style="font-size:0.75rem; color:#888; text-align:center; padding:6px;">目前還沒有人查看您的檔案，多在地圖移動或開啟組隊能增加曝光！</div>
+            </div>
         </div>
 
         <div class="card" id="partyWindowCard" style="border: 2px dashed var(--team-color); background: rgba(231,76,60,0.02);">
-            <div class="card-title" style="color:var(--team-color)">🛡️ 遊戲級「當前隊伍成員列表」(Party Window)</div>
+            <div class="card-title" style="color:var(--team-color)">🛡️ 當前隊伍成員列表 (Party Window)</div>
             <div id="partyMemberList" style="display:flex; flex-direction:column; gap:4px;">
                 <div style="font-size:0.8rem; color:#888; text-align:center; padding:10px;">您目前處於無隊伍散人狀態</div>
             </div>
@@ -165,7 +223,7 @@
 
         <div class="card" id="partyChatCard" style="border: 1px solid var(--team-color);">
             <div class="card-title" style="color:var(--team-color)">
-                <span>🔊 組隊專屬公頻聊天室 (Party Chat) <span id="partyUnreadDot" class="hidden badge-red"></span></span>
+                <span>🔊 組隊專屬頻道聊天室 <span id="partyUnreadDot" class="hidden badge-red"></span></span>
                 <div style="display:flex; gap:6px;">
                     <button class="btn-game" style="background:var(--dashboard-color); color:#fff;" onclick="exportChatHistory()">💾 匯出 TXT</button>
                 </div>
@@ -225,15 +283,15 @@
         </div>
 
         <div class="card">
-            <div class="card-title">🚀 編輯我的商務引力與配對需求</div>
+            <div class="card-title">🚀 編輯我的個人引力與配對設定</div>
             <div style="background:var(--surface2); padding:12px; border-radius:8px; text-align:center; display:flex; flex-direction:column; gap:8px; align-items:center;">
                 <img id="myAvatarDisplay" src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" class="avatar-preview">
-                <span style="font-size:0.75rem; color:#fff;">🔗 貼上外部大頭貼網址</span>
-                <input type="text" id="avatarUrlInput" placeholder="請貼上圖片網址" onchange="previewAvatarUrl()">
+                <span style="font-size:0.75rem; color:#fff;">🔗 大頭貼網址</span>
+                <input type="text" id="avatarUrlInput" placeholder="請貼上外部圖片網址" onchange="previewAvatarUrl()">
             </div>
             <div style="display:flex; flex-direction:column; gap:6px; margin-top:6px;">
-                <textarea id="myHasWhat" placeholder="我的資源摘要"></textarea>
-                <textarea id="myMatchDemand" placeholder="輸入配對關鍵字"></textarea>
+                <textarea id="myHasWhat" placeholder="我的傳統資源摘要描述"></textarea>
+                <textarea id="myMatchDemand" placeholder="輸入配對傳統關鍵字"></textarea>
                 <label style="font-size:0.8rem; color:#fff; display:flex; align-items:center; gap:6px; margin-top:4px;">
                     <input type="checkbox" id="emailBackupToggle" onchange="updateEmailBackupStatus()"> 📧 當我退出隊伍時，自動將對話歷史備份寄至信箱
                 </label>
@@ -242,7 +300,7 @@
         </div>
 
         <div class="card" style="border: 1px solid var(--friend-color);">
-            <div class="card-title" style="color:var(--friend-color)">🧑‍🤝‍🧑 我的組員好友與線上文字對話</div>
+            <div class="card-title" style="color:var(--friend-color)">🧑‍🤝‍🧑 我的組員好友與線上對話</div>
             <div id="friendContainer" style="display:flex; flex-direction:column; gap:6px;"></div>
             <div style="display:grid; grid-template-columns: 1fr auto; gap:6px;">
                 <input type="text" id="fEmail" placeholder="輸入好友註冊的 Email">
@@ -255,7 +313,7 @@
             <div id="targetList" style="display:flex; flex-direction:column; gap:6px;">
                 <div style="font-size:0.75rem; text-align:center; padding:10px;">📂 暫無儲存的固定地點</div>
             </div>
-            <input type="text" id="geoSearchInput" placeholder="智慧地標搜尋定位...">
+            <input type="text" id="geoSearchInput" placeholder="智慧地標搜尋定位 (Google Places)...">
             <div class="hidden"><input type="text" id="tLat"><input type="text" id="tLng"></div>
             <input type="text" id="tName" placeholder="自設地點名稱">
             <select id="tTag"><option value="#室內類">#室內類</option><option value="#美食類">#美食類</option></select>
@@ -268,23 +326,17 @@
         window.SUPABASE_URL = 'https://hknxdvefnuxgyepuuqra.supabase.co';
         window.SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhrbnhkdmVmbnV4Z3llcHV1cXJhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1MzM0MDAsImV4cCI6MjA5NzEwOTQwMH0.M97OwM_9CrLCrgxbyA6kQs0MLFiRDzyYlvIiGqhBGec';
         
-        if (!window.dbClient) {
-            window.dbClient = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_KEY);
-        }
+        if (!window.dbClient) window.dbClient = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_KEY);
 
         let currentUser = null, tracking = false, watchId = null, currentPosition = { lat: 25.0451, lng: 121.4525 };
-        let radarMap = null, myMarker = null, radarCircle = null;
-        let mapElements = [], lastNotifiedUsers = new Set();
-        let closeRangeEncounters = new Set(); // 記錄已經彈出提示過的的300公尺內玩家ID
-        let isRegister = false;
-        let cachedChatMessages = [];
+        let radarMap = null, myMarker = null, radarCircle = null, mapElements = [];
+        let isRegister = false, cachedChatMessages = [], notifiedEncounters = new Set();
         const DEFAULT_AVATAR = 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png';
 
         function showToast(msg, type) {
-            if(!type) type = 'info';
-            const t = document.createElement('div'); t.className = "toast " + type; t.textContent = msg;
+            const t = document.createElement('div'); t.className = "toast " + (type || 'info'); t.textContent = msg;
             document.getElementById('toastContainer').appendChild(t);
-            setTimeout(function() { t.remove(); }, 4000);
+            setTimeout(() => t.remove(), 4000);
         }
 
         function toggleAuthMode() { isRegister = !isRegister; document.getElementById('nickGroup').classList.toggle('hidden', !isRegister); }
@@ -315,83 +367,77 @@
         async function handleAuth() {
             const email = document.getElementById('authEmail').value.trim();
             const password = document.getElementById('authPassword').value;
-            
-            if (!email || !password) {
-                showToast('⚠️ 請輸入完整的帳號與密碼', 'error');
-                return;
-            }
+            if (!email || !password) return showToast('⚠️ 請輸入完整的帳號與密碼', 'error');
 
             try {
                 if(isRegister) {
                     const nick = document.getElementById('authNickname').value.trim() || '新成員';
                     const { data, error } = await window.dbClient.auth.signUp({ email: email, password: password });
-                    
                     if (error) throw error;
-                    if (data && data.user) {
-                        await window.dbClient.from('profiles').insert({ id: data.user.id, email: email, nickname: nick, login_count: 1, team_max_members: 5 });
-                        showToast('🎉 註冊成功！已切換回登入畫面。', 'success');
-                        toggleAuthMode();
-                    } else {
-                        showToast('📩 註冊驗證信已寄出，請至信箱確認後再行登入！', 'match');
-                        toggleAuthMode();
-                    }
+                    await window.dbClient.from('profiles').insert({ id: data.user.id, email: email, nickname: nick, login_count: 1, team_max_members: 5 });
+                    showToast('🎉 註冊成功！已切換回登入。', 'success');
+                    toggleAuthMode();
                 } else {
                     const { data, error } = await window.dbClient.auth.signInWithPassword({ email: email, password: password });
                     if (error) throw error;
-                    
                     currentUser = data.user;
-                    const profileRes = await window.dbClient.from('profiles').select('nickname').eq('id', currentUser.id).single();
-                    if(profileRes.data) currentUser.nickname = profileRes.data.nickname;
-
-                    await window.dbClient.from('profiles').update({ is_online: true }).eq('id', currentUser.id);
                     enterMainApp();
                 }
-            } catch(e) { 
-                showToast('驗證失敗: ' + e.message, 'error');
-            }
+            } catch(e) { showToast('驗證失敗: ' + e.message, 'error'); }
         }
 
-        async function handleLogout() {
-            try {
-                if (currentUser) {
-                    if (tracking && watchId) {
-                        navigator.geolocation.clearWatch(watchId);
-                        tracking = false;
-                        document.getElementById('trackBtn').textContent = '▶️ 啟動雷達實時掃描';
-                        document.getElementById('sweeperEl').style.display = 'none';
-                    }
-                    await window.dbClient.from('profiles').update({ is_online: false }).eq('id', currentUser.id);
+        async function enterMainApp() {
+            document.getElementById('authPage').classList.add('hidden');
+            document.getElementById('mainApp').classList.remove('hidden');
+            await loadMarketProfileData();
+            await loadProfileViews();
+            loadTeamNoticeBoard();
+            loadDashboardMetrics();
+            refreshPartyWindow();
+            loadPartyChatMessages();
+            
+            setTimeout(() => { initRadarMap(currentPosition.lat, currentPosition.lng); initGoogleAutocomplete(); }, 300);
+
+            if(window.appInterval) clearInterval(window.appInterval);
+            window.appInterval = setInterval(() => {
+                if(tracking && currentUser) {
+                    window.dbClient.from('profiles').update({ current_lat: currentPosition.lat, current_lng: currentPosition.lng, is_online: true }).eq('id', currentUser.id);
+                    refreshRadarMarkers(); loadTeamNoticeBoard(); refreshPartyWindow(); loadPartyChatMessages(); loadProfileViews();
                 }
-                await window.dbClient.auth.signOut();
-                currentUser = null;
-                
-                document.getElementById('mainApp').classList.add('hidden');
-                document.getElementById('authPage').classList.remove('hidden');
-                document.getElementById('authPassword').value = ''; 
-                showToast('🚪 帳號已安全登出！', 'success');
-            } catch (e) {
-                showToast('登出錯誤: ' + e.message, 'error');
-            }
+            }, 4000);
         }
 
-        async function loadProfileData() {
+        async function loadMarketProfileData() {
             const res = await window.dbClient.from('profiles').select('*').eq('id', currentUser.id).single();
             if(res.data) {
                 currentUser.nickname = res.data.nickname;
+                currentUser.is_vip = res.data.is_vip || false;
                 document.getElementById('avatarUrlInput').value = res.data.avatar_url || '';
                 document.getElementById('myAvatarDisplay').src = res.data.avatar_url || DEFAULT_AVATAR;
                 document.getElementById('myHasWhat').value = res.data.has_what || '';
+                document.getElementById('myMatchDemand').value = res.data.need_what || '';
                 document.getElementById('shieldToggle').checked = res.data.is_shielded || false;
                 document.getElementById('emailBackupToggle').checked = res.data.email_chat_backup || false;
                 document.getElementById('teamMaxMembers').value = res.data.team_max_members || 5;
-                if(res.data.team_start_time) {
-                    document.getElementById('teamStartTime').value = res.data.team_start_time.substring(0,16);
-                }
+                document.getElementById('myCurrentStatus').value = res.data.current_status || '';
+                if(res.data.provide_tag) document.getElementById('myProvideTag').value = res.data.provide_tag;
+                if(res.data.need_tag) document.getElementById('myNeedTag').value = res.data.need_tag;
+                if(res.data.team_start_time) document.getElementById('teamStartTime').value = res.data.team_start_time.substring(0,16);
                 if(res.data.is_teaming) {
                     document.getElementById('teamTitle').value = res.data.team_name || '';
                     document.getElementById('myActiveTeamStatus').textContent = `🟢 招募中: ${res.data.team_name} (${res.data.team_max_members}人上限)`;
                 }
             }
+        }
+
+        async function saveMarketProfile() {
+            await window.dbClient.from('profiles').update({
+                current_status: document.getElementById('myCurrentStatus').value.trim(),
+                provide_tag: document.getElementById('myProvideTag').value,
+                need_tag: document.getElementById('myNeedTag').value
+            }).eq('id', currentUser.id);
+            showToast('💼 成功在附近人脈市場更新您的資源與精準需求！', 'success');
+            refreshRadarMarkers();
         }
 
         async function saveProfile() {
@@ -401,42 +447,27 @@
                 need_what: document.getElementById('myMatchDemand').value,
                 email_chat_backup: document.getElementById('emailBackupToggle').checked
             }).eq('id', currentUser.id);
-            showToast('💾 設定已存檔！', 'success');
+            showToast('💾 傳統設定檔案已存檔！', 'success');
         }
 
-        async function updateShieldStatus() {
-            await window.dbClient.from('profiles').update({ is_shielded: document.getElementById('shieldToggle').checked }).eq('id', currentUser.id);
-        }
+        async function updateShieldStatus() { await window.dbClient.from('profiles').update({ is_shielded: document.getElementById('shieldToggle').checked }).eq('id', currentUser.id); }
+        async function updateEmailBackupStatus() { await window.dbClient.from('profiles').update({ email_chat_backup: document.getElementById('emailBackupToggle').checked }).eq('id', currentUser.id); }
 
-        async function updateEmailBackupStatus() {
-            await window.dbClient.from('profiles').update({ email_chat_backup: document.getElementById('emailBackupToggle').checked }).eq('id', currentUser.id);
-        }
-
-        // ==================== 強化組隊狀態操控邏輯 ====================
+        // ==================== 組隊控制核心 (滿員檢查) ====================
         async function changeTeamStatus(enable) {
             const title = document.getElementById('teamTitle').value.trim();
             const cat = document.getElementById('teamCategory').value;
             const maxMem = parseInt(document.getElementById('teamMaxMembers').value) || 5;
             const startTime = document.getElementById('teamStartTime').value ? new Date(document.getElementById('teamStartTime').value).toISOString() : null;
 
-            if(enable && !title) { showToast('⚠️ 請輸入組隊名稱', 'error'); return; }
+            if(enable && !title) return showToast('⚠️ 請輸入組隊名稱', 'error');
             
             if(enable) {
                 await window.dbClient.from('profiles').update({
-                    is_teaming: true,
-                    team_name: title,
-                    team_category: cat,
-                    current_team_id: currentUser.id,
-                    team_max_members: maxMem,
-                    team_start_time: startTime
+                    is_teaming: true, team_name: title, team_category: cat, current_team_id: currentUser.id, team_max_members: maxMem, team_start_time: startTime
                 }).eq('id', currentUser.id);
 
-                await window.dbClient.from('team_messages').insert({
-                    team_id: currentUser.id,
-                    sender_id: currentUser.id,
-                    message: `👑 ${currentUser.nickname || '玩家'} 建立了隊伍【${title}】`
-                });
-                
+                await window.dbClient.from('team_messages').insert({ team_id: currentUser.id, sender_id: currentUser.id, message: `👑 ${currentUser.nickname || '玩家'} 建立了隊伍【${title}】` });
                 document.getElementById('myActiveTeamStatus').textContent = `🟢 隊伍招募中: ${title} (${maxMem}人上限)`;
                 showToast('🔥 已成功創建組隊！', 'success');
             } else {
@@ -444,115 +475,57 @@
                 const oldTeamId = myProfile.data?.current_team_id;
 
                 if (oldTeamId) {
-                    // 如果用戶勾選了退出備份信件
-                    if(myProfile.data?.email_chat_backup) {
-                        triggerEmailBackupRPC(oldTeamId);
-                    }
+                    if(myProfile.data?.email_chat_backup) { try { await window.dbClient.functions.invoke('send-chat-backup', { body: { team_id: oldTeamId, user_id: currentUser.id } }); } catch(e){} }
 
                     if(oldTeamId === currentUser.id) {
-                        // 解散隊伍
-                        await window.dbClient.from('team_messages').insert({
-                            team_id: currentUser.id,
-                            sender_id: currentUser.id,
-                            message: `👑 ${currentUser.nickname || '玩家'} 解散了隊伍`
-                        });
-                        
-                        await window.dbClient.from('profiles').update({ 
-                            team_leave_time: new Date().toISOString() 
-                        }).eq('id', currentUser.id);
-
+                        await window.dbClient.from('team_messages').insert({ team_id: currentUser.id, sender_id: currentUser.id, message: `👑 ${currentUser.nickname || '玩家'} 解散了隊伍` });
+                        await window.dbClient.from('profiles').update({ team_leave_time: new Date().toISOString() }).eq('id', currentUser.id);
                         await window.dbClient.from('profiles').update({ current_team_id: null, is_teaming: false, team_name: null, team_category: null }).eq('current_team_id', currentUser.id);
                         showToast('🛑 隊伍已解散！', 'info');
                     } else {
-                        // 一般隊員退組
-                        await window.dbClient.from('team_messages').insert({
-                            team_id: oldTeamId,
-                            sender_id: currentUser.id,
-                            message: `🔴 ${currentUser.nickname || '玩家'} 已退出組隊`
-                        });
-
-                        await window.dbClient.from('profiles').update({
-                            current_team_id: null,
-                            is_teaming: false,
-                            team_leave_time: new Date().toISOString()
-                        }).eq('id', currentUser.id);
+                        await window.dbClient.from('team_messages').insert({ team_id: oldTeamId, sender_id: currentUser.id, message: `🔴 ${currentUser.nickname || '玩家'} 已退出組隊` });
+                        await window.dbClient.from('profiles').update({ current_team_id: null, is_teaming: false, team_leave_time: new Date().toISOString() }).eq('id', currentUser.id);
                         showToast('🛑 已退出隊伍！', 'info');
                     }
                 }
                 document.getElementById('myActiveTeamStatus').textContent = '當前狀態：未開啟組隊';
             }
-            refreshPartyWindow();
-            loadPartyChatMessages();
+            refreshPartyWindow(); loadPartyChatMessages();
         }
 
-        // 加入隊伍前進行「滿員檢查」
         async function joinTeamGroup(leaderId, leaderName) {
-            // 1. 取得目前該隊伍的人數與上限
             const leaderRes = await window.dbClient.from('profiles').select('team_max_members').eq('id', leaderId).single();
             const maxCount = leaderRes.data?.team_max_members || 5;
 
             const membersCountRes = await window.dbClient.from('profiles').select('id', { count: 'exact', head: true }).eq('current_team_id', leaderId);
             const currentCount = membersCountRes.count || 0;
 
-            if (currentCount >= maxCount) {
-                showToast(`❌ 額滿阻擋！該隊伍人數已達上限 (${currentCount}/${maxCount})`, 'error');
-                return;
-            }
+            if (currentCount >= maxCount) return showToast(`❌ 額滿阻擋！該隊伍人數已達上限 (${currentCount}/${maxCount})`, 'error');
 
             await window.dbClient.from('profiles').update({ current_team_id: leaderId, is_teaming: false }).eq('id', currentUser.id);
-            
-            await window.dbClient.from('team_messages').insert({
-                team_id: leaderId,
-                sender_id: currentUser.id,
-                message: `🟢 ${currentUser.nickname || '玩家'} 已加入組隊`
-            });
+            await window.dbClient.from('team_messages').insert({ team_id: leaderId, sender_id: currentUser.id, message: `🟢 ${currentUser.nickname || '玩家'} 已加入組隊` });
             showToast(`🎉 成功加入 ${leaderName} 的組隊！`, 'success');
             
-            refreshPartyWindow();
-            loadPartyChatMessages();
+            refreshPartyWindow(); loadPartyChatMessages();
         }
 
         async function transferLeader(newLeaderId, name) {
             const target = await window.dbClient.from('profiles').select('team_name, team_category, team_max_members, team_start_time').eq('id', currentUser.id).single();
-            
-            await window.dbClient.from('team_messages').insert({
-                team_id: currentUser.id,
-                sender_id: currentUser.id,
-                message: `🎯 ${name} 成為新隊長`
-            });
+            await window.dbClient.from('team_messages').insert({ team_id: currentUser.id, sender_id: currentUser.id, message: `🎯 ${name} 成為新隊長` });
 
             await window.dbClient.from('profiles').update({ current_team_id: newLeaderId }).eq('current_team_id', currentUser.id);
-            
             await window.dbClient.from('profiles').update({ 
-                is_teaming: true, 
-                team_name: target.data?.team_name, 
-                team_category: target.data?.team_category,
-                team_max_members: target.data?.team_max_members,
-                team_start_time: target.data?.team_start_time,
-                current_team_id: newLeaderId
+                is_teaming: true, team_name: target.data?.team_name, team_category: target.data?.team_category, team_max_members: target.data?.team_max_members, team_start_time: target.data?.team_start_time, current_team_id: newLeaderId
             }).eq('id', newLeaderId);
 
-            await window.dbClient.from('profiles').update({ 
-                is_teaming: false, 
-                team_name: null,
-                team_category: null,
-                current_team_id: newLeaderId 
-            }).eq('id', currentUser.id);
-
+            await window.dbClient.from('profiles').update({ is_teaming: false, team_name: null, team_category: null, current_team_id: newLeaderId }).eq('id', currentUser.id);
             showToast(`👑 已將隊長特權移交給 ${name}！`, 'success');
             document.getElementById('myActiveTeamStatus').textContent = '當前狀態：隊員';
-            
-            refreshPartyWindow();
-            loadPartyChatMessages();
+            refreshPartyWindow(); loadPartyChatMessages();
         }
 
         async function kickMember(targetId, name) {
-            await window.dbClient.from('team_messages').insert({
-                team_id: currentUser.id,
-                sender_id: currentUser.id,
-                message: `🔴 ${name} 已被隊長移出隊伍`
-            });
-
+            await window.dbClient.from('team_messages').insert({ team_id: currentUser.id, sender_id: currentUser.id, message: `🔴 ${name} 已被隊長移出隊伍` });
             await window.dbClient.from('profiles').update({ current_team_id: null, is_teaming: false, team_leave_time: new Date().toISOString() }).eq('id', targetId);
             showToast(`❌ 已將 ${name} 移出隊伍`, 'info');
             refreshPartyWindow();
@@ -563,12 +536,9 @@
             const myRes = await window.dbClient.from('profiles').select('current_team_id').eq('id', currentUser.id).single();
             const tId = myRes.data?.current_team_id;
             const container = document.getElementById('partyMemberList');
-            if(!tId) {
-                container.innerHTML = `<div style="font-size:0.8rem; color:#888; text-align:center; padding:10px;">您目前處於無隊伍散人狀態</div>`;
-                return;
-            }
+            if(!tId) { container.innerHTML = `<div style="font-size:0.8rem; color:#888; text-align:center; padding:10px;">您目前處於無隊伍散人狀態</div>`; return; }
 
-            const membersRes = await window.dbClient.from('profiles').select('id, nickname, is_teaming, is_online').eq('current_team_id', tId);
+            const membersRes = await window.dbClient.from('profiles').select('id, nickname, is_online').eq('current_team_id', tId);
             const members = membersRes.data || [];
             const isMeLeader = (tId === currentUser.id);
             
@@ -576,42 +546,16 @@
             members.forEach(m => {
                 const isLeader = (m.id === tId);
                 const roleTag = isLeader ? `<span style="color:var(--team-color); font-weight:bold;">[隊長]</span>` : `<span style="color:var(--friend-color);">[隊員]</span>`;
-                const onlineDot = m.is_online ? '🟢' : '⚪';
-                
-                let actionButtons = '';
-                if(isMeLeader && m.id !== currentUser.id) {
-                    actionButtons = `
-                        <div>
-                            <button class="btn-game" style="background:#e67e22; color:#fff;" onclick="transferLeader('${m.id}', '${m.nickname}')">👑 轉讓</button>
-                            <button class="btn-game" style="background:#c0392b; color:#fff;" onclick="kickMember('${m.id}', '${m.nickname}')">❌ 踢除</button>
-                        </div>
-                    `;
-                }
+                let actBtns = (isMeLeader && m.id !== currentUser.id) ? `<div><button class="btn-game" style="background:#e67e22; color:#fff;" onclick="transferLeader('${m.id}', '${m.nickname}')">轉讓</button> <button class="btn-game" style="background:#c0392b; color:#fff;" onclick="kickMember('${m.id}', '${m.nickname}')">踢除</button></div>` : '';
 
-                html += `
-                    <div class="party-member-row" style="border-left-color: ${isLeader ? 'var(--team-color)' : 'var(--friend-color)'}">
-                        <div>${onlineDot} ${roleTag} <b>${m.nickname || '未命名'}</b> ${m.id === currentUser.id ? '(我)' : ''}</div>
-                        ${actionButtons}
-                    </div>
-                `;
+                html += `<div class="party-member-row" style="border-left-color: ${isLeader ? 'var(--team-color)' : 'var(--friend-color)'}"><div>${m.is_online?'🟢':'⚪'} ${roleTag} <b>${m.nickname || '未命名'}</b></div>${actBtns}</div>`;
             });
             container.innerHTML = html;
         }
 
-        // ==================== 強化版公頻聊天室邏輯 (7天規則、未讀紅點) ====================
-        function handleChatScroll() {
-            const box = document.getElementById('partyChatBox');
-            // 如果使用者滑到底部，就更新已讀時間
-            if (box.scrollHeight - box.scrollTop <= box.clientHeight + 10) {
-                updateLastReadTimestamp();
-            }
-        }
-
-        async function updateLastReadTimestamp() {
-            if(!currentUser) return;
-            await window.dbClient.from('profiles').update({ party_last_read: new Date().toISOString() }).eq('id', currentUser.id);
-            document.getElementById('partyUnreadDot').classList.add('hidden');
-        }
+        // ==================== 強化版聊天專屬頻道 (7天保留、退組清空、未讀點) ====================
+        function handleChatScroll() { const box = document.getElementById('partyChatBox'); if (box.scrollHeight - box.scrollTop <= box.clientHeight + 10) updateLastReadTimestamp(); }
+        async function updateLastReadTimestamp() { if(!currentUser) return; await window.dbClient.from('profiles').update({ party_last_read: new Date().toISOString() }).eq('id', currentUser.id); document.getElementById('partyUnreadDot').classList.add('hidden'); }
 
         async function loadPartyChatMessages() {
             if (!currentUser) return;
@@ -621,335 +565,228 @@
             const leaveTime = myRes.data?.team_leave_time;
             const box = document.getElementById('partyChatBox');
             
-            // 💡 追加功能：退組後7天，公頻聊天室完全清空
             if (!tId) {
-                if (leaveTime) {
-                    const daysSinceLeave = (Date.now() - new Date(leaveTime).getTime()) / (1000 * 60 * 60 * 24);
-                    if (daysSinceLeave >= 7) {
-                        box.innerHTML = `<div class='msg-line msg-system'>🔒 您已離開隊伍超過 7 天，歷史聊天紀錄已自動完全銷毀清空。</div>`;
-                        return;
-                    }
+                if (leaveTime && (Date.now() - new Date(leaveTime).getTime()) / (1000 * 60 * 60 * 24) >= 7) {
+                    box.innerHTML = `<div class='msg-line msg-system'>🔒 您已離開隊伍超過 7 天，歷史組隊聊天紀錄已自動銷毀完全清空。</div>`; return;
                 }
-                box.innerHTML = `<div class='msg-line msg-system'>請先從公告欄加入任一組隊，方可啟用組隊公頻</div>`;
-                return;
+                box.innerHTML = `<div class='msg-line msg-system'>請先從公告欄加入或創建一個隊伍以啟用公頻聊天</div>`; return;
             }
 
-            // 💡 訊息保留 7 天 (歷史清洗)
             const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-            const res = await window.dbClient.from('team_messages')
-                .select('*')
-                .eq('team_id', tId)
-                .gte('created_at', sevenDaysAgo)
-                .order('created_at', { ascending: true });
-                
+            const res = await window.dbClient.from('team_messages').select('*').eq('team_id', tId).gte('created_at', sevenDaysAgo).order('created_at', { ascending: true });
             const profiles = await window.dbClient.from('profiles').select('id, nickname');
-            let html = '';
-            let hasUnread = false;
+            
+            let html = '', hasUnread = false;
             cachedChatMessages = res.data || [];
             
             if(res.data) {
                 res.data.forEach(m => {
                     const sender = profiles.data?.find(x => x.id === m.sender_id);
                     const name = sender ? sender.nickname : '未知組員';
-                    
                     const isSystem = m.message.startsWith('👑') || m.message.startsWith('🎯') || m.message.startsWith('🟢') || m.message.startsWith('🔴');
-                    let side = m.sender_id === currentUser.id ? 'msg-me' : 'msg-other';
                     const timeStr = new Date(m.created_at).toLocaleTimeString('zh-TW',{ hour:'2-digit', minute:'2-digit', hour12:false });
             
-                    if (lastRead && new Date(m.created_at) > new Date(lastRead) && m.sender_id !== currentUser.id) {
-                        hasUnread = true;
-                    }
+                    if (lastRead && new Date(m.created_at) > new Date(lastRead) && m.sender_id !== currentUser.id) hasUnread = true;
 
-                    if(isSystem){
-                        html += `<div class="msg-line msg-system">${m.message}</div>`;
-                    } else {
-                        html += `
-                        <div class="msg-line ${side}">
-                            <b>${name}</b>
-                            <span style="font-size:11px; opacity:.65; margin:0 4px;">${timeStr}</span>：${m.message}
-                        </div>
-                        `;
-                    }
+                    if(isSystem) html += `<div class="msg-line msg-system">${m.message}</div>`;
+                    else html += `<div class="msg-line ${m.sender_id === currentUser.id ? 'msg-me':'msg-other'}"><b>${name}</b> <span style="font-size:10px; opacity:.6;">${timeStr}</span>：${m.message}</div>`;
                 });
             }
-            box.innerHTML = html || `<div class='msg-line msg-system'>✨ 組隊頻道初始化成功！</div>`;
-            
-            // 未讀紅點判斷
-            if (hasUnread && box.scrollHeight - box.scrollTop > box.clientHeight + 20) {
-                document.getElementById('partyUnreadDot').classList.remove('hidden');
-            } else {
-                updateLastReadTimestamp();
-            }
-            
+            box.innerHTML = html || `<div class='msg-line msg-system'>✨ 組隊頻道歷史初始化成功！</div>`;
+            if (hasUnread && box.scrollHeight - box.scrollTop > box.clientHeight + 20) document.getElementById('partyUnreadDot').classList.remove('hidden');
+            else updateLastReadTimestamp();
             box.scrollTop = box.scrollHeight;
         }
 
         async function sendPartyChatMessage() {
-            const input = document.getElementById('partyChatInput');
-            const text = input.value.trim(); if(!text) return;
+            const input = document.getElementById('partyChatInput'); const text = input.value.trim(); if(!text) return;
             const myRes = await window.dbClient.from('profiles').select('current_team_id').eq('id', currentUser.id).single();
             const tId = myRes.data?.current_team_id;
-            if(!tId) { showToast('⚠️ 目前不屬於任何隊伍，無法發言', 'error'); return; }
+            if(!tId) return showToast('⚠️ 目前不屬於任何隊伍，無法發言', 'error');
 
             await window.dbClient.from('team_messages').insert({ team_id: tId, sender_id: currentUser.id, message: text });
-            input.value = '';
-            updateLastReadTimestamp();
-            loadPartyChatMessages();
+            input.value = ''; updateLastReadTimestamp(); loadPartyChatMessages();
         }
 
-        // 💡 聊天紀錄匯出 TXT 功能
         function exportChatHistory() {
-            if(cachedChatMessages.length === 0) { showToast('当前沒有聊天紀錄可供匯出', 'error'); return; }
-            let textOutput = `--- TribeRadar 團隊對話紀錄備份 ---\n匯出時間: ${new Date().toLocaleString()}\n\n`;
-            cachedChatMessages.forEach(m => {
-                textOutput += `[${new Date(m.created_at).toLocaleString()}] 使用者(${m.sender_id.substring(0,5)}): ${m.message}\n`;
-            });
-            const blob = new Blob([textOutput], { type: 'text/plain;charset=utf-8' });
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = `TribeRadar_Chat_Backup_${new Date().toISOString().slice(0,10)}.txt`;
-            link.click();
+            if(cachedChatMessages.length === 0) return showToast('當前沒有聊天紀錄可供匯出', 'error');
+            let txt = `--- TribeRadar 團隊對話紀錄備份 ---\n\n`;
+            cachedChatMessages.forEach(m => { txt += `[${new Date(m.created_at).toLocaleString()}] 使用者(${m.sender_id.substring(0,5)}): ${m.message}\n`; });
+            const link = document.createElement('a'); link.href = URL.createObjectURL(new Blob([txt], { type: 'text/plain;charset=utf-8' }));
+            link.download = `TribeRadar_Chat_${new Date().toISOString().slice(0,10)}.txt`; link.click();
         }
 
-        // 模擬調用 RPC Edge Function 寄發備份信
-        async function triggerEmailBackupRPC(teamId) {
-            try { await window.dbClient.functions.invoke('send-chat-backup', { body: { team_id: teamId, user_id: currentUser.id } }); } catch(e) {}
-        }
-
-        // ==================== 實時雷達主動偶遇機制 (Pokemon GO / Tinder 核心) ====================
-        function handleCloseRangeEncounter(user, distance) {
-            if (closeRangeEncounters.has(user.id)) return; // 已經通報過，不重複打擾
-            
-            closeRangeEncounters.add(user.id);
-            
-            // 顯示畫面下方的震撼彈跳視窗
-            document.getElementById('encounterAvatar').src = user.avatar_url || DEFAULT_AVATAR;
-            document.getElementById('encounterName').textContent = user.nickname || '神祕玩家';
-            document.getElementById('encounterDist').textContent = `距離您僅 ${Math.round(distance)} 公尺！`;
-            
-            document.getElementById('encounterViewBtn').onclick = function() {
-                // 自動移動視角，並手動彈出地圖 Popup 點標
-                if(radarMap) {
-                    radarMap.setView([user.current_lat, user.current_lng], 16);
-                    showToast(`📍 已在地圖定位點選玩家: ${user.nickname}`, 'success');
-                }
-                dismissEncounter();
-            };
-
-            document.getElementById('radarEncounterPopup').classList.remove('hidden');
-            
-            // 同時發送網頁級推播式 Toast
-            showToast(`⚡ 核心偶遇！玩家 ${user.nickname} 已進入您的 300M 核心範圍！`, 'match');
-        }
-
-        function dismissEncounter() {
-            document.getElementById('radarEncounterPopup').classList.add('hidden');
-        }
-
-        // ==================== 地圖與掃描底層 ====================
+        // ==================== 雷達核心、心理學、一鍵破冰與需求市場媒合 ====================
         function initRadarMap(lat, lng) {
-            if (radarMap) { radarMap.setView([lat, lng]); myMarker.setLatLng([lat, lng]); radarCircle.setLatLng([lat, lng]); return; }
+            if (radarMap) return;
             radarMap = L.map('radarMap', { zoomControl: false, attributionControl: false }).setView([lat, lng], 14);
             L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(radarMap);
             myMarker = L.marker([lat, lng], { icon: L.divIcon({ html: `<div style="background:#fff; width:14px; height:14px; border-radius:50%; border:3px solid var(--accent); box-shadow:0 0 12px var(--accent);"></div>`, iconSize:[14,14] }) }).addTo(radarMap);
-            radarCircle = L.circle([lat, lng], { radius: 1500, color: 'var(--accent)', weight: 1, fillColor: 'var(--accent)', fillOpacity: 0.02 }).addTo(radarMap);
+            radarCircle = L.circle([lat, lng], { radius: 1500, color: 'var(--accent)', weight: 1, fillColor: 'var(--accent)', fillOpacity: 0.01 }).addTo(radarMap);
         }
 
         function toggleTracking() {
-            const btn = document.getElementById('trackBtn');
-            const sweeper = document.getElementById('sweeperEl');
+            const btn = document.getElementById('trackBtn'); const sweeper = document.getElementById('sweeperEl');
             if (tracking) {
                 if(watchId) navigator.geolocation.clearWatch(watchId);
                 tracking = false; btn.textContent = '▶️ 啟動雷達實時掃描'; sweeper.style.display = 'none';
                 mapElements.forEach(el => radarMap.removeLayer(el)); mapElements = [];
             } else {
                 watchId = navigator.geolocation.watchPosition(async function(pos) {
-                    if (!currentUser) return;
                     currentPosition = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-                    initRadarMap(currentPosition.lat, currentPosition.lng);
-        
+                    if(radarMap) { radarMap.setView([currentPosition.lat, currentPosition.lng]); myMarker.setLatLng([currentPosition.lat, currentPosition.lng]); radarCircle.setLatLng([currentPosition.lat, currentPosition.lng]); }
                     await window.dbClient.from('profiles').update({ current_lat: currentPosition.lat, current_lng: currentPosition.lng, is_online: true }).eq('id', currentUser.id);
                     refreshRadarMarkers(); loadTeamNoticeBoard(); refreshPartyWindow(); loadPartyChatMessages();
                 }, e => showToast(e.message, 'error'), { enableHighAccuracy: true });
                 tracking = true; btn.textContent = '⏸️ 停止雷達監控'; sweeper.style.display = 'block';
+                showToast('📡 雷達波已散射！開始計算精準地緣人脈與組隊...', 'success');
             }
         }
 
         async function refreshRadarMarkers() {
-            if(!radarMap || !tracking || !currentUser) return;
+            if(!radarMap || !currentUser) return;
             mapElements.forEach(el => radarMap.removeLayer(el)); mapElements = [];
 
-            const myRes = await window.dbClient.from('profiles').select('current_team_id').eq('id', currentUser.id).single();
-            const myTeamId = myRes.data?.current_team_id;
+            const myProfileRes = await window.dbClient.from('profiles').select('current_team_id, provide_tag, need_tag').eq('id', currentUser.id).single();
+            const myTeamId = myProfileRes.data?.current_team_id;
+            const myNeed = myProfileRes.data?.need_tag;
+
             const uRes = await window.dbClient.from('profiles').select('*').not('current_lat', 'is', null).eq('is_shielded', false);
             const users = uRes.data || [];
 
-            let leadersGeoMap = {};
-            users.forEach(u => { if(u.is_teaming) leadersGeoMap[u.id] = [u.current_lat, u.current_lng]; });
+            let totalNearby = 0, marketCount = 0;
 
             users.forEach(u => {
                 if(u.id === currentUser.id) return;
                 const dist = calcDistance(currentPosition.lat, currentPosition.lng, u.current_lat, u.current_lng);
                 
-                // 💡 五星級別：300m 近身主動通知觸發
-                if(dist <= 300) {
-                    handleCloseRangeEncounter(u, dist);
+                const maxRange = currentUser.is_vip ? 10000 : 1500;
+                if(dist > maxRange) return;
+
+                totalNearby++;
+                if(u.provide_tag && u.provide_tag !== '無') marketCount++;
+
+                // ⚡ 300M 寶可夢近身震撼彈出通知
+                if(dist <= 300 && !notifiedEncounters.has(u.id)) {
+                    notifiedEncounters.add(u.id);
+                    document.getElementById('encounterAvatar').src = u.avatar_url || DEFAULT_AVATAR;
+                    document.getElementById('encounterName').textContent = u.nickname || '神祕精英';
+                    document.getElementById('encounterStatus').textContent = `🎯 正在做：${u.current_status || '探索雷達'}`;
+                    document.getElementById('encounterDist').textContent = `已進入 300M 核心引力圈 (距離 ${Math.round(dist)} 公尺)`;
+                    document.getElementById('encounterViewBtn').onclick = () => { radarMap.setView([u.current_lat, u.current_lng], 16); document.getElementById('radarEncounterPopup').classList.add('hidden'); };
+                    document.getElementById('radarEncounterPopup').classList.remove('hidden');
                 }
 
-                if(dist > 1500) return;
-
+                // 精準人脈市場媒合 (他的提供 == 我的需要)
+                const isMarketMatch = (myNeed && u.provide_tag && myNeed === u.provide_tag);
                 const isSameTeam = (myTeamId && u.current_team_id === myTeamId);
-                let markerColor = u.is_teaming ? 'var(--team-color)' : (isSameTeam ? 'var(--friend-color)' : 'var(--stranger-color)');
                 
-                let dotHtml = u.is_teaming 
-                    ? `<div style='background:${markerColor}; width:16px; height:16px; border-radius:50%; border:2px solid #fff; box-shadow:0 0 12px ${markerColor}; display:flex; align-items:center; justify-content:center; color:#fff; font-size:9px;'>🔥</div>`
-                    : (isSameTeam 
-                        ? `<div style='background:${markerColor}; width:14px; height:14px; border-radius:50%; border:2px solid #fff; box-shadow:0 0 10px ${markerColor}; display:flex; align-items:center; justify-content:center; color:#fff; font-size:8px;'>🔷</div>`
-                        : `<div style='background:${markerColor}; width:12px; height:12px; border-radius:50%; border:2px solid #fff;'></div>`);
+                let affinityScore = isMarketMatch ? 92 : (60 + Math.floor(Math.random() * 15));
+
+                let dotColor = u.is_teaming ? 'var(--team-color)' : (isMarketMatch ? 'var(--market-color)' : (isSameTeam ? 'var(--friend-color)' : 'var(--stranger-color)'));
+                let glow = isMarketMatch ? 'animation: pulse 1.2s infinite;' : '';
+                
+                let dotHtml = `<div style="background:${dotColor}; width:16px; height:16px; border-radius:50%; border:2px solid #fff; box-shadow:0 0 10px ${dotColor}; ${glow} display:flex; align-items:center; justify-content:center; color:#fff; font-size:9px;">${u.is_teaming?'🔥':(isMarketMatch?'🤝':'👤')}</div>`;
 
                 const marker = L.marker([u.current_lat, u.current_lng], { icon: L.divIcon({ html: dotHtml, iconSize:[16,16] }) }).addTo(radarMap);
-                
-                let teamBox = '';
-                if(u.is_teaming) {
-                    teamBox = `
-                    <div style='background:var(--team-color); color:#fff; padding:6px; border-radius:4px; margin-bottom:6px; font-size:11px;'>
-                        <b>👥 隊伍招募：</b>${u.team_name}<br>
-                        <b>⏰ 時間：</b>${u.team_start_time ? new Date(u.team_start_time).toLocaleString() : '即時開團'}<br>
-                        <button class="btn-action" onclick="joinTeamGroup('${u.id}', '${u.nickname}')">➕ 申請加入組隊</button>
-                    </div>`;
-                }
+                marker.on('click', () => { if(currentUser) window.dbClient.from('profile_views').insert({ viewer_id: currentUser.id, viewed_id: u.id }); });
+
+                let teamBox = u.is_teaming ? `<div style='background:var(--team-color); color:#fff; padding:6px; border-radius:4px; margin-bottom:6px; font-size:11px;'><b>👥 隊伍揪團：</b>${u.team_name}<br><button class="btn-action" onclick="joinTeamGroup('${u.id}', '${u.nickname}')">➕ 申請加入組隊</button></div>` : '';
 
                 marker.bindPopup(`
-                <div style="color:#333; min-width:220px; text-align:center; font-family:sans-serif;">
-                    <img src="${u.avatar_url || DEFAULT_AVATAR}" style="width:70px; height:70px; border-radius:50%; object-fit:cover; border:3px solid #2ecc71; margin-bottom:8px;">
-                    <div style="font-size:16px; font-weight:bold; margin-bottom:4px;">👤 ${u.nickname || '未命名'}</div>
-                    <div style="background:#f5f5f5; padding:6px; border-radius:6px; margin-bottom:6px; text-align:left; font-size:12px;">
-                        <b>💼 我的資源</b><br>${u.has_what || '尚未填寫'}
+                <div style="color:#333; min-width:230px; text-align:center; font-family:sans-serif;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;"><span class="market-tag">🔮 緣分值 ${affinityScore}%</span><span style="font-size:10px; color:#667;">📍 距離 ${Math.round(dist)}m</span></div>
+                    <div style="font-size:14px; font-weight:bold; color:#111; margin-bottom:2px;">${u.nickname || '未命名'}</div>
+                    <div style="color:#e67e22; font-size:11px; font-weight:bold; margin-bottom:4px;">⚡ 正在做：${u.current_status || '探索雷達中'}</div>
+                    <div style="background:#f4f4f4; padding:5px; border-radius:6px; text-align:left; font-size:11px; display:flex; flex-direction:column; gap:2px; margin-bottom:6px;">
+                        <div><span class="provide-tag">我有</span> ${u.provide_tag || '無'}</div>
+                        <div><span class="market-tag" style="background:rgba(0,0,0,0.05); color:#444;">我需要</span> ${u.need_tag || '無'}</div>
                     </div>
                     ${teamBox}
-                </div>
-                `);
+                    <div style="font-size:11px; font-weight:bold; text-align:left; margin-bottom:2px;">⚡ 一鍵破冰打招呼：</div>
+                    <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:4px;">
+                        <button class="btn-icebreaker" onclick="showToast('🚀 已發射 破冰哈囉 訊號！','success')">👋 哈囉</button>
+                        <button class="btn-icebreaker" onclick="showToast('☕ 已邀約 喝杯咖啡 破冰！','success')">☕ 咖啡</button>
+                        <button class="btn-icebreaker" onclick="showToast('💼 已啟動 商務聊聊 媒合！','success')">💼 商務</button>
+                    </div>
+                </div>`);
                 mapElements.push(marker);
             });
 
-            // 定點目標區域管理渲染
-            const showTargetsChecked = document.getElementById('showTargets').checked;
-            const targetListEl = document.getElementById('targetList');
-            
-            if (showTargetsChecked) {
-                window.dbClient.from('static_targets').select('*').eq('user_id', currentUser.id)
-                .then(res => {
-                    const targets = res.data || [];
-                    let listHtml = '';
-                    targets.forEach(t => {
-                        const tMarker = L.marker([t.lat, t.lng], { 
-                            icon: L.divIcon({ html: `<div style="background:var(--target-color); width:14px; height:14px; border-radius:50%; border:2px solid #fff; box-shadow:0 0 10px var(--target-color);"></div>`, iconSize: [14, 14] }) 
-                        }).addTo(radarMap);
-                        tMarker.bindPopup(`<b>📍 固定地點</b><br>${t.name}`);
-                        mapElements.push(tMarker);
-                        listHtml += `
-                            <div class="list-row">
-                                <span>🟢 <b>${t.name}</b></span>
-                                <button class="btn-game" style="background:#c0392b; color:#fff;" onclick="deleteStaticTarget('${t.id}')">❌ 刪除</button>
-                            </div>
-                        `;
-                    });
-                    targetListEl.innerHTML = listHtml || '<div style="font-size:0.75rem; text-align:center; padding:10px;">📂 暫無儲存的固定地點</div>';
+            // 頂部綜覽動態更新
+            document.getElementById('radarSummaryText').innerHTML = `📡 <b>今日附近有 ${totalNearby} 位使用者</b>正活躍在引力網中！<br>✨ 其中有 <b style="color:var(--market-color)">${marketCount} 位</b> 攜帶精準商機資源，快在地圖上查看閃爍的橘黃光點！`;
+
+            // 定點區域渲染
+            if (document.getElementById('showTargets').checked) {
+                const sRes = await window.dbClient.from('static_targets').select('*').eq('user_id', currentUser.id);
+                let listHtml = '';
+                (sRes.data || []).forEach(t => {
+                    const tMarker = L.marker([t.lat, t.lng], { icon: L.divIcon({ html: `<div style="background:var(--target-color); width:14px; height:14px; border-radius:50%; border:2px solid #fff; box-shadow:0 0 10px var(--target-color);"></div>`, iconSize: [14, 14] }) }).addTo(radarMap);
+                    tMarker.bindPopup(`<b>📍 固定地點</b><br>${t.name}`); mapElements.push(tMarker);
+                    listHtml += `<div class="list-row"><span>🟢 <b>${t.name}</b></span><button class="btn-game" style="background:#c0392b; color:#fff;" onclick="deleteStaticTarget('${t.id}')">❌ 刪除</button></div>`;
                 });
+                document.getElementById('targetList').innerHTML = listHtml || '<div style="font-size:0.75rem; text-align:center; padding:10px;">📂 暫無儲存的固定地點</div>';
             }
         }
 
-        // 💡 強化版組隊公告欄（即時計算當前人數 / 上限 與 活動時間）
         async function loadTeamNoticeBoard() {
             const res = await window.dbClient.from('profiles').select('*').eq('is_teaming', true).eq('is_shielded', false);
             const allUsers = await window.dbClient.from('profiles').select('current_team_id');
             let html = '';
-            
             if(res.data) {
-                for (let t of res.data) {
+                res.data.forEach(t => {
                     const dist = calcDistance(currentPosition.lat, currentPosition.lng, t.current_lat, t.current_lng);
-                    if (dist > 10000) continue; // 超過 10 公里不顯示
+                    if (dist > 10000) return;
+                    const count = allUsers.data?.filter(x => x.current_team_id === t.id).length || 1;
+                    const max = t.team_max_members || 5;
+                    const timeStr = t.team_start_time ? new Date(t.team_start_time).toLocaleTimeString('zh-TW', {hour: '2-digit', minute:'2-digit'}) : '隨即開始';
 
-                    // 計算該隊伍目前有的總人數
-                    const currentCount = allUsers.data?.filter(x => x.current_team_id === t.id).length || 1;
-                    const maxCount = t.team_max_members || 5;
-                    const timeString = t.team_start_time ? new Date(t.team_start_time).toLocaleTimeString('zh-TW', {hour: '2-digit', minute:'2-digit'}) : '隨即開始';
-
-                    html += `
-                    <div class='list-row' style="border-left: 4px solid var(--team-color); padding: 12px; margin-bottom:4px;">
-                        <div style="display:flex; flex-direction:column; gap:2px;">
-                            <span style="font-size:0.85rem; color:#fff;">🔥 <b>${t.team_name}</b></span>
-                            <span style="font-size:0.75rem; color:var(--accent);">🎮 類別: ${t.team_category || '通用'} | ⏱️ ${timeString}</span>
-                        </div>
-                        <div style="text-align:right; display:flex; flex-direction:column; align-items:flex-end; gap:4px;">
-                            <b style="color:#fff; font-size:0.85rem;">${currentCount} / ${maxCount}</b>
-                            <button class="btn btn-outline" style="padding:2px 8px; font-size:0.7rem; border-color:var(--team-color); color:var(--team-color);" onclick="joinTeamGroup('${t.id}', '${t.nickname}')">加入</button>
-                        </div>
-                    </div>`;
-                }
+                    html += `<div class='list-row' style="border-left:4px solid var(--team-color); margin-bottom:4px;"><div>🔥 <b>${t.team_name}</b><br><span style="font-size:0.75rem; color:var(--accent);">🎮 類別: ${t.team_category || '通用'} | ⏱️ ${timeStr}</span></div><div style="text-align:right;"><b style="color:#fff; font-size:0.85rem;">${count} / ${max}</b><br><button class="btn btn-outline" style="padding:2px 8px; font-size:0.7rem; color:var(--team-color); border-color:var(--team-color);" onclick="joinTeamGroup('${t.id}', '${t.nickname}')">加入隊伍</button></div></div>`;
+                });
             }
-            document.getElementById('teamNoticeBoard').innerHTML = html || '<div style="font-size:0.75rem; text-align:center; padding:10px;">附近暫無組隊招募團</div>';
+            document.getElementById('teamNoticeBoard').innerHTML = html || '<div style="font-size:0.75rem; text-align:center; padding:10px;">附近 10 KM 內暫無活躍的組隊揪團</div>';
         }
 
-        async function loadDashboardMetrics() {
-            try {
-                const viewsRes = await window.dbClient.from('site_metrics').select('metric_value').eq('metric_key', 'total_page_views').single();
-                document.getElementById('statPageViews').textContent = viewsRes.data?.metric_value || 0;
-                const onlineRes = await window.dbClient.from('profiles').select('id', { count: 'exact', head: true }).eq('is_online', true);
-                document.getElementById('statActiveUsers').textContent = onlineRes.count || 0;
-            } catch(e) {}
+        async function loadProfileViews() {
+            if(!currentUser) return;
+            const res = await window.dbClient.from('profile_views').select('viewer_id, created_at').eq('viewed_id', currentUser.id).order('created_at', {ascending:false}).limit(5);
+            const container = document.getElementById('viewerList');
+            if(!res.data || res.data.length === 0) return;
+
+            const uRes = await window.dbClient.from('profiles').select('id, nickname');
+            const users = uRes.data || [];
+            let html = '';
+
+            res.data.forEach(v => {
+                const viewer = users.find(x => x.id === v.viewer_id);
+                const name = viewer ? viewer.nickname : '匿名玩家';
+                if(!currentUser.is_vip) {
+                    html += `<div class="peek-row" onclick="showVipModal()" style="cursor:pointer;"><div>🔒 <span class="blur-text">XXXXXX</span> 剛剛悄悄查看了您的引力商務檔案</div><span style="font-size:10px; color:var(--vip-color); font-weight:bold;">解鎖特權 👑</span></div>`;
+                } else {
+                    html += `<div class="peek-row"><div>👀 <b>${name}</b> 在 <span>${new Date(v.created_at).toLocaleTimeString()}</span> 瀏覽了您的引力檔案</div><span style="color:var(--accent); font-size:11px;">已留痕 ⚡</span></div>`;
+                }
+            });
+            container.innerHTML = html;
         }
 
-        async function addFriend() {
-            const email = document.getElementById('fEmail').value.trim();
-            if(!email) return;
-            await window.dbClient.from('friendships').insert({ user_id: currentUser.id, friend_email: email, friend_nickname: email });
-            document.getElementById('fEmail').value = ''; showToast('好友綁定成功');
-        }
+        function showVipModal() { showToast('👑 這是 VIP 皇冠訂閱特權！即將開啟訂閱付款，可解鎖 10KM 雷達圖層，並能無限查看「誰看過我」的所有人脈足跡蹤跡！', 'match'); }
+        async function loadDashboardMetrics() { try { const viewsRes = await window.dbClient.from('site_metrics').select('metric_value').eq('metric_key', 'total_page_views').single(); document.getElementById('statPageViews').textContent = viewsRes.data?.metric_value || 0; const onlineRes = await window.dbClient.from('profiles').select('id', { count: 'exact', head: true }).eq('is_online', true); document.getElementById('statActiveUsers').textContent = onlineRes.count || 0; } catch(e) {} }
+        async function addFriend() { const email = document.getElementById('fEmail').value.trim(); if(!email) return; await window.dbClient.from('friendships').insert({ user_id: currentUser.id, friend_email: email, friend_nickname: email }); document.getElementById('fEmail').value = ''; showToast('好友與組員綁定成功'); }
+        async function addStaticTarget() { const name = document.getElementById('tName').value.trim(); let lat = document.getElementById('tLat').value; let lng = document.getElementById('tLng').value; if (!name) return showToast('⚠️ 請輸入定點名稱', 'error'); if (!lat || !lng) { lat = currentPosition.lat; lng = currentPosition.lng; } await window.dbClient.from('static_targets').insert({ user_id: currentUser.id, name: name, lat: parseFloat(lat), lng: parseFloat(lng) }); showToast('📍 定點目標成功存入雲端', 'success'); document.getElementById('tName').value = ''; document.getElementById('geoSearchInput').value = ''; refreshRadarMarkers(); }
+        async function deleteStaticTarget(id) { await window.dbClient.from('static_targets').delete().eq('id', id); refreshRadarMarkers(); }
 
-        async function addStaticTarget() {
-            const name = document.getElementById('tName').value.trim();
-            let lat = document.getElementById('tLat').value; let lng = document.getElementById('tLng').value;
-            if (!name) { showToast('⚠️ 請輸入地點名稱', 'error'); return; }
-            if (!lat || !lng) { lat = currentPosition.lat; lng = currentPosition.lng; }
-            try {
-                await window.dbClient.from('static_targets').insert({ user_id: currentUser.id, name: name, lat: parseFloat(lat), lng: parseFloat(lng) });
-                showToast('📍 定點已存入雲端', 'success');
-                document.getElementById('tName').value = ''; document.getElementById('geoSearchInput').value = '';
-                refreshRadarMarkers();
-            } catch (e) {}
-        }
-
-        async function deleteStaticTarget(id) {
-            try {
-                await window.dbClient.from('static_targets').delete().eq('id', id);
-                refreshRadarMarkers();
-            } catch (e) {}
-        }
-
-        async function enterMainApp() { 
-            document.getElementById('authPage').classList.add('hidden');
-            document.getElementById('mainApp').classList.remove('hidden'); 
-            await loadProfileData(); loadTeamNoticeBoard(); loadDashboardMetrics(); refreshPartyWindow(); loadPartyChatMessages();
-            setTimeout(() => { initRadarMap(25.0451, 121.4525); initGoogleAutocomplete(); }, 300);
-            
-            if(window.appInterval) clearInterval(window.appInterval);
-            window.appInterval = setInterval(() => { 
-                if(tracking && currentUser) { refreshRadarMarkers(); loadTeamNoticeBoard(); refreshPartyWindow(); loadPartyChatMessages(); } 
-            }, 4000);
+        async function handleLogout() {
+            if(currentUser) await window.dbClient.from('profiles').update({ is_online: false }).eq('id', currentUser.id);
+            if(watchId) navigator.geolocation.clearWatch(watchId);
+            await window.dbClient.auth.signOut(); currentUser = null;
+            document.getElementById('mainApp').classList.add('hidden'); document.getElementById('authPage').classList.remove('hidden');
         }
 
         window.onload = async function() {
-            try {
-                await window.dbClient.rpc('increment_page_view');
-                const res = await window.dbClient.auth.getSession();
-                if(res.data?.session?.user) { 
-                    currentUser = res.data.session.user; 
-                    enterMainApp();
-                } else { 
-                    document.getElementById('connStatus').textContent = '🟢 主機已就緒，請驗證登入';
-                }
-            } catch(err) {}
+            try { await window.dbClient.rpc('increment_page_view'); } catch(e){}
+            const res = await window.dbClient.auth.getSession();
+            if(res.data?.session?.user) { currentUser = res.data.session.user; enterMainApp(); }
+            else { document.getElementById('connStatus').textContent = '🟢 引力網絡已就緒，請登入認證'; }
         };
     </script>
 </body>
