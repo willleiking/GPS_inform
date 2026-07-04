@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>🟢 TribeRadar 終極商機引力雷達 V6.5 - 靈魂完全體</title>
+    <title>🟢 TribeRadar 終極商機引力雷達 V6.6 - 全局招募看板修正版</title>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -57,7 +57,7 @@
         .radar-outer { position: relative; width: 100%; padding-bottom: 90%; height: 0; }
         #radarMap { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
         
-        /* 🔥 補回：雷達正宗轉圈圈掃描特效（科技綠強效遮罩扇形旋轉） */
+        /* 雷達扇形轉圈圈掃描特效 */
         .radar-sweep { 
             position: absolute; 
             top: -50%; left: -50%; width: 200%; height: 200%; 
@@ -66,9 +66,8 @@
             pointer-events: none; 
             border-radius: 50%;
             transform-origin: center center; 
-            display: none; /* 預設關閉，啟動掃描時開啟 */
+            display: none;
         }
-        /* CSS 旋轉特效動畫 */
         @keyframes sweepRotate {
             from { transform: rotate(0deg); }
             to { transform: rotate(360deg); }
@@ -94,6 +93,9 @@
         .tag-block { display: inline-block; padding: 2px 5px; font-size: 0.7rem; border-radius: 4px; margin-right: 4px; }
         .tag-good { background: rgba(46,204,113,0.15); color: var(--accent); }
         .tag-bad { background: rgba(231,76,60,0.15); color: var(--safety-color); }
+        
+        /* 招募看板特定樣式 */
+        .notice-card { background: rgba(231, 76, 60, 0.05); border: 1px solid rgba(231, 76, 60, 0.2); border-radius: 8px; padding: 10px; display: flex; flex-direction: column; gap: 4px; }
     </style>
 </head>
 <body>
@@ -103,7 +105,7 @@
     <!-- 驗證區塊 -->
     <div class="app-container" id="authPage">
         <div class="card" style="text-align:center;">
-            <h2 style="color:var(--accent)">🟢 TribeRadar 雷達完全體 V6.5</h2>
+            <h2 style="color:var(--accent)">🟢 TribeRadar 雷達完全體 V6.6</h2>
             <p style="font-size:0.75rem; color:#888;" id="connStatus">引力星網連接中...</p>
         </div>
         <div class="card">
@@ -149,7 +151,6 @@
         <div class="card radar-panel">
             <div class="radar-outer">
                 <div id="radarMap"></div>
-                <!-- 🔥 補回：雷達轉圈圈掃描特效 DOM 節點 -->
                 <div class="radar-sweep" id="radarSweepCircle"></div>
             </div>
         </div>
@@ -165,7 +166,7 @@
             </div>
         </div>
 
-        <!-- 🔥 補回：核心「好友名單群組區塊」 -->
+        <!-- 好友名單群組區塊 -->
         <div class="card" style="border: 1px solid var(--friend-color);">
             <div class="card-title" style="color:var(--friend-color)">👥 我的雷達緊密好友名單 (Friends List)</div>
             <div id="friendListContainer" style="display:flex; flex-direction:column; gap:6px; max-height:160px; overflow-y:auto;">
@@ -231,10 +232,12 @@
             </div>
         </div>
 
-        <!-- 📋 即時組隊招募公告欄 -->
-        <div class="card" style="border: 1px solid var(--team-color);">
-            <div class="card-title" style="color:var(--team-color)">📋 即時組隊公告欄 (15 KM 內)</div>
-            <div id="teamNoticeBoard" style="display:flex; flex-direction:column; gap:6px;"></div>
+        <!-- 🔥【核心修正：正在招募中的公告欄】 -->
+        <div class="card" style="border: 1px solid var(--team-color); background: rgba(231, 76, 60, 0.02);">
+            <div class="card-title" style="color:var(--team-color)">📋 正在招募中的全局公告欄 (即時同步 15 KM 內)</div>
+            <div id="teamNoticeBoard" style="display:flex; flex-direction:column; gap:8px; max-height:250px; overflow-y:auto;">
+                <div style="font-size:0.75rem; text-align:center; padding:10px; color:#888;">正在探測附近招募訊號...</div>
+            </div>
         </div>
 
         <!-- 揪團控制台 -->
@@ -244,14 +247,13 @@
                 <input type="text" id="teamTitle" placeholder="輸入目前組隊名稱 (例: 健身工廠練背揪團)">
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
                     <input type="number" id="teamMaxMembers" min="2" max="100" value="5" placeholder="上限人數">
-                    <input type="datetime-local" id="teamStartTime">
+                    <select id="teamCategory">
+                        <option value="健身團">健身團</option>
+                        <option value="吃貨團">吃貨團</option>
+                        <option value="商務交流">商務交流</option>
+                        <option value="科技新創">科技新創</option>
+                    </select>
                 </div>
-                <select id="teamCategory">
-                    <option value="健身團">健身團</option>
-                    <option value="吃貨團">吃貨團</option>
-                    <option value="商務交流">商務交流</option>
-                    <option value="科技新創">科技新創</option>
-                </select>
                 <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;">
                     <button class="btn" style="background:var(--team-color); color:#fff;" onclick="changeTeamStatus(true); logFeatureClick('發起組隊揪團');">🟢 開始招募組隊</button>
                     <button class="btn" style="background:var(--surface2); color:#fff;" onclick="changeTeamStatus(false)">🛑 退出/解散組隊</button>
@@ -389,17 +391,13 @@
             myMarker = L.marker([lat, lng], { icon: L.divIcon({ html: `<div style="background:#fff; width:13px; height:13px; border-radius:50%; border:3px solid var(--accent); box-shadow:0 0 10px var(--accent);"></div>` }) }).addTo(radarMap);
         }
 
-        /* 🔥 補回：雷達掃描開關，連動控制 CSS 扇形特效動畫旋轉 */
         function toggleTracking() {
             const sweepEl = document.getElementById('radarSweepCircle');
             if (tracking) { 
                 if(watchId) navigator.geolocation.clearWatch(watchId); 
                 tracking = false; 
                 document.getElementById('trackBtn').textContent = '▶️ 啟動雷達實時掃描'; 
-                
-                // 關閉雷達特效
-                sweepEl.style.display = 'none';
-                sweepEl.style.animation = 'none';
+                sweepEl.style.display = 'none'; sweepEl.style.animation = 'none';
             }
             else {
                 watchId = navigator.geolocation.watchPosition(async function(pos) {
@@ -410,19 +408,14 @@
                 }, e => showToast(e.message, 'error'), { enableHighAccuracy: true });
                 tracking = true; 
                 document.getElementById('trackBtn').textContent = '⏸️ 停止雷達監控';
-                
-                // 啟動雷達特效（3秒轉一圈，無限循環）
-                sweepEl.style.display = 'block';
-                sweepEl.style.animation = 'sweepRotate 3s linear infinite';
+                sweepEl.style.display = 'block'; sweepEl.style.animation = 'sweepRotate 3s linear infinite';
             }
         }
 
-        // 🔥 補回：好友名單載入邏輯
         async function loadFriendsList() {
             if(!currentUser) return;
             const res = await window.dbClient.from('friends').select('id, friend_id, friend_name, friend_email').eq('user_id', currentUser.id);
-            friendListSet.clear();
-            let html = '';
+            friendListSet.clear(); let html = '';
             (res.data || []).forEach(f => {
                 friendListSet.add(f.friend_id);
                 html += `<div class="list-row" style="background:rgba(52, 152, 219, 0.05); border-left: 3px solid var(--friend-color);">
@@ -433,27 +426,15 @@
             document.getElementById('friendListContainer').innerHTML = html || `<div style="color:#888; text-align:center; padding:6px; font-size:0.8rem;">目前好友清單空空如也</div>`;
         }
 
-        // 🔥 補回：加好友功能
         async function addFriendByEmail() {
-            const email = document.getElementById('addFriendEmail').value.trim();
-            if(!email) return showToast('⚠️ 請輸入好友的 Email', 'error');
-            
-            // 至 profiles 查詢該 Email 使用者
+            const email = document.getElementById('addFriendEmail').value.trim(); if(!email) return showToast('⚠️ 請輸入好友的 Email', 'error');
             const targetRes = await window.dbClient.from('profiles').select('id, nickname').eq('email', email).single();
             if(!targetRes.data) return showToast('❌ 找不到此引力使用者，請確認 Email 填寫正確', 'error');
-            
-            await window.dbClient.from('friends').insert({
-                user_id: currentUser.id,
-                friend_id: targetRes.data.id,
-                friend_name: targetRes.data.nickname,
-                friend_email: email
-            });
-            document.getElementById('addFriendEmail').value = '';
-            showToast(`🎉 成功將 ${targetRes.data.nickname} 加入緊密好友！`, 'success');
+            await window.dbClient.from('friends').insert({ user_id: currentUser.id, friend_id: targetRes.data.id, friend_name: targetRes.data.nickname, friend_email: email });
+            document.getElementById('addFriendEmail').value = ''; showToast(`🎉 成功將 ${targetRes.data.nickname} 加入緊密好友！`, 'success');
             await loadFriendsList(); refreshRadarMarkers();
         }
 
-        // 🔥 補回：刪除好友功能
         async function deleteFriend(id) {
             await window.dbClient.from('friends').delete().eq('id', id);
             showToast('已解除好友關係'); await loadFriendsList(); refreshRadarMarkers();
@@ -466,6 +447,10 @@
                 document.getElementById('myCurrentStatus').value = res.data.current_status || '';
                 if(res.data.provide_tag) document.getElementById('myProvideTag').value = res.data.provide_tag;
                 if(res.data.need_tag) document.getElementById('myNeedTag').value = res.data.need_tag;
+                if(res.data.is_teaming && res.data.team_name) {
+                    document.getElementById('teamTitle').value = res.data.team_name;
+                    document.getElementById('myActiveTeamStatus').textContent = `🟢 招募中: ${res.data.team_name}`;
+                }
             }
         }
 
@@ -489,8 +474,7 @@
                 const targetMarker = L.marker([t.lat, t.lng], {
                     icon: L.divIcon({ html: `<div style="background:var(--accent); width:12px; height:12px; border-radius:3px; border:2px solid #fff; box-shadow:0 0 6px var(--accent);"></div>` })
                 }).addTo(radarMap);
-                targetMarker.bindPopup(`<b style="color:#333;">📍 定點目標：${t.name}</b>`);
-                mapElements.push(targetMarker);
+                targetMarker.bindPopup(`<b style="color:#333;">📍 定點目標：${t.name}</b>`); mapElements.push(targetMarker);
             });
 
             const uRes = await window.dbClient.from('profiles').select('*').not('current_lat', 'is', null).eq('is_shielded', false);
@@ -529,7 +513,6 @@
                     if(userRatings.filter(r => r.tag.includes('放鳥') || r.tag.includes('怪異')).length > 0) tagHtml = `<span class="tag-block tag-bad">⚠️ 風險: ${userRatings[0].tag}</span>`;
                 }
 
-                // 🔥 好友特定變色邏輯：若是密友，點點強制改為好友藍
                 let dotColor = friendListSet.has(u.id) ? 'var(--friend-color)' : (u.is_teaming ? 'var(--team-color)' : (isBizMatch ? 'var(--market-color)' : 'var(--stranger-color)'));
                 let markerHtml = `<div style="background:${dotColor}; width:16px; height:16px; border-radius:50%; border:2px solid #fff; box-shadow:0 0 8px ${dotColor}; display:flex; align-items:center; justify-content:center; color:#fff; font-size:9px;">${friendListSet.has(u.id)?'🤝':(u.is_teaming?'🔥':'👤')}</div>`;
 
@@ -562,28 +545,19 @@
 
         async function loadStaticTargets() {
             if(!currentUser) return;
-            const res = await window.dbClient.from('static_targets').select('*').eq('user_id', currentUser.id);
-            staticTargetsCache = res.data || [];
+            const res = await window.dbClient.from('static_targets').select('*').eq('user_id', currentUser.id); staticTargetsCache = res.data || [];
             let html = '';
             staticTargetsCache.forEach(t => {
-                html += `<div class="list-row" style="background:rgba(255,255,255,0.02);">
-                    <span>📍 <b>${t.name}</b> (${t.lat.toFixed(4)}, ${t.lng.toFixed(4)})</span>
-                    <button class="btn-danger" style="padding:2px 6px;" onclick="deleteStaticTarget('${t.id}')">刪除</button>
-                </div>`;
+                html += `<div class="list-row" style="background:rgba(255,255,255,0.02);"><span>📍 <b>${t.name}</b> (${t.lat.toFixed(4)}, ${t.lng.toFixed(4)})</span><button class="btn-danger" style="padding:2px 6px;" onclick="deleteStaticTarget('${t.id}')">刪除</button></div>`;
             });
             document.getElementById('targetList').innerHTML = html || `<div style="color:#888; text-align:center; padding:6px; font-size:0.8rem;">目前無雲端儲存定點。</div>`;
         }
         async function addStaticTarget() {
-            const name = document.getElementById('tName').value.trim();
-            if(!name) return showToast('⚠️ 請輸入定點區域名稱', 'error');
+            const name = document.getElementById('tName').value.trim(); if(!name) return showToast('⚠️ 請輸入定點區域名稱', 'error');
             await window.dbClient.from('static_targets').insert({ user_id: currentUser.id, name: name, lat: currentPosition.lat, lng: currentPosition.lng });
-            document.getElementById('tName').value = ''; showToast('✅ 定點儲存成功', 'success');
-            await loadStaticTargets(); refreshRadarMarkers();
+            document.getElementById('tName').value = ''; showToast('✅ 定點儲存成功', 'success'); await loadStaticTargets(); refreshRadarMarkers();
         }
-        async function deleteStaticTarget(id) {
-            await window.dbClient.from('static_targets').delete().eq('id', id);
-            showToast('已移除定點區域'); await loadStaticTargets(); refreshRadarMarkers();
-        }
+        async function deleteStaticTarget(id) { await window.dbClient.from('static_targets').delete().eq('id', id); showToast('已移除定點區域'); await loadStaticTargets(); refreshRadarMarkers(); }
 
         async function refreshPartyWindow() {
             if (!currentUser) return;
@@ -635,21 +609,28 @@
         async function addToBlacklist(blockedId) { await window.dbClient.from('blacklists').insert({ user_id: currentUser.id, blocked_id: blockedId }); showToast('🛑 已封鎖屏蔽', 'error'); await loadBlacklist(); refreshRadarMarkers(); }
         async function removeBlacklist(id) { await window.dbClient.from('blacklists').delete().eq('id', id); showToast('已解除'); await loadBlacklist(); refreshRadarMarkers(); }
 
+        /* 🟢 修改：開啟招募組隊狀態 */
         async function changeTeamStatus(enable) {
             const title = document.getElementById('teamTitle').value.trim(); const cat = document.getElementById('teamCategory').value;
             const maxMem = parseInt(document.getElementById('teamMaxMembers').value) || 5;
             if(enable && !title) return showToast('⚠️ 請輸入組隊招募名稱', 'error');
+            
             if(enable) {
+                // 將自己的隊伍 ID 設為自己，並將 is_teaming 設為 true 供全局看板撈取
                 await window.dbClient.from('profiles').update({ is_teaming: true, team_name: title, team_category: cat, current_team_id: currentUser.id, team_max_members: maxMem }).eq('id', currentUser.id);
                 await window.dbClient.from('activity_history').insert({ user_id: currentUser.id, team_name: title });
-                document.getElementById('myActiveTeamStatus').textContent = `🟢 招募中: ${title}`; showToast('🔥 組隊招募上架成功', 'success');
+                document.getElementById('myActiveTeamStatus').textContent = `🟢 招募中: ${title}`; showToast('🔥 全局組隊招募看板上架成功！', 'success');
             } else {
+                // 解散/退出：將所有目前處於這支隊伍的組員全部強制釋放
                 await window.dbClient.from('profiles').update({ current_team_id: null, is_teaming: false, team_name: null }).eq('current_team_id', currentUser.id);
                 await window.dbClient.from('profiles').update({ current_team_id: null, is_teaming: false }).eq('id', currentUser.id);
                 document.getElementById('myActiveTeamStatus').textContent = '當前狀態：未開啟組隊';
+                showToast('🛑 已關閉您的組隊招募狀態');
             }
-            refreshPartyWindow(); loadPartyChatMessages(); loadActivityHistory();
+            refreshPartyWindow(); loadTeamNoticeBoard(); loadPartyChatMessages(); loadActivityHistory(); refreshRadarMarkers();
         }
+
+        /* 🔊 聊天室內容讀取 */
         async function loadPartyChatMessages() {
             if (!currentUser) return;
             const myRes = await window.dbClient.from('profiles').select('current_team_id').eq('id', currentUser.id).single();
@@ -665,11 +646,69 @@
             await window.dbClient.from('team_messages').insert({ team_id: tId, sender_id: currentUser.id, message: text });
             input.value = ''; loadPartyChatMessages();
         }
+
+        /* 🔥【核心重寫：全局即時招募公告欄數據渲染與人數進度計算】 */
         async function loadTeamNoticeBoard() {
-            const res = await window.dbClient.from('profiles').select('*').eq('is_teaming', true);
-            let html = ''; (res.data || []).forEach(t => { html += `<div class='list-row' style="margin-bottom:2px;"><div>🔥 <b>${t.team_name}</b></div><button class="btn btn-outline" style="padding:2px 8px; font-size:0.7rem;" onclick="joinTeamGroup('${t.id}')">加入</button></div>`; });
-            document.getElementById('teamNoticeBoard').innerHTML = html || '<div style="font-size:0.75rem; text-align:center; padding:10px;">附近暫無活躍的招募團</div>';
+            if(!currentUser) return;
+            // 1. 撈取所有正在開團(is_teaming = true)的隊長資料
+            const allTeamsRes = await window.dbClient.from('profiles').select('*').eq('is_teaming', true);
+            // 2. 撈取所有人在線的人，用來在前端即時動態計算每支隊伍目前「已經有多少人在裡面」
+            const allPlayersRes = await window.dbClient.from('profiles').select('id, current_team_id');
+            
+            const teams = allTeamsRes.data || [];
+            const players = allPlayersRes.data || [];
+            let html = '';
+
+            teams.forEach(t => {
+                // 排除黑名單內的隊長
+                if(blacklistSet.has(t.id)) return;
+
+                // 篩選地理引力距離在 15 公里之內的人
+                const dist = calcDistance(currentPosition.lat, currentPosition.lng, t.current_lat, t.current_lng);
+                if(dist > 15000) return;
+
+                // 即時動態統計此隊伍當前的實際成員人數
+                const currentMemberCount = players.filter(p => p.current_team_id === t.id).length;
+                const maxMembers = t.team_max_members || 5;
+
+                html += `
+                <div class="notice-card">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <span style="font-size:0.85rem; font-weight:bold; color:#fff;">🏷️ [${t.team_category || '組隊'}] ${t.team_name}</span>
+                        <span style="font-size:0.75rem; color:var(--team-color); font-weight:bold;">👥 人數：${currentMemberCount} / ${maxMembers} 人</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:2px; font-size:0.72rem; color:#bbb;">
+                        <span>👑 隊長：<b>${t.nickname || '神祕團長'}</b> (${(dist/1000).toFixed(1)} km外)</span>
+                        <button class="btn btn-outline" style="padding:4px 10px; font-size:0.7rem; border-radius:4px; border-color:var(--accent); color:var(--accent);" onclick="joinTeamGroup('${t.id}')">⚡ 一鍵加入</button>
+                    </div>
+                </div>`;
+            });
+
+            document.getElementById('teamNoticeBoard').innerHTML = html || '<div style="font-size:0.75rem; text-align:center; padding:12px; color:#888;">📡 附近 15km 內暫無公開招募中的組隊訊號。</div>';
         }
+
+        /* 🟢 玩家加入別人的隊伍邏輯 */
+        async function joinTeamGroup(targetTeamId) {
+            if(!currentUser) return;
+            // 檢查該隊伍人數是否已滿
+            const allPlayersRes = await window.dbClient.from('profiles').select('id, current_team_id');
+            const currentMembers = (allPlayersRes.data || []).filter(p => p.current_team_id === targetTeamId);
+            
+            // 撈取隊長的最大人數設定
+            const leaderRes = await window.dbClient.from('profiles').select('team_max_members').eq('id', targetTeamId).single();
+            const maxAllowed = leaderRes.data?.team_max_members || 5;
+
+            if(currentMembers.length >= maxAllowed) {
+                return showToast('❌ 該隊伍招募人數已達上限，無法加入！', 'error');
+            }
+
+            // 更新自己的 current_team_id
+            await window.dbClient.from('profiles').update({ current_team_id: targetTeamId, is_teaming: false }).eq('id', currentUser.id);
+            showToast('🎉 成功加入隊伍頻道！開啟專屬團隊雷達與通訊。', 'success');
+            
+            refreshPartyWindow(); loadTeamNoticeBoard(); loadPartyChatMessages(); refreshRadarMarkers();
+        }
+
         async function loadActivityHistory() {
             if(!currentUser) return;
             const res = await window.dbClient.from('activity_history').select('*').eq('user_id', currentUser.id);
