@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>🟢 TribeRadar 終極商機引力雷達 V6.6 - 全局招募看板修正版</title>
+    <title>🟢 TribeRadar 終極商機引力雷達 V6.7 - 團隊聊天室解 BUG 版</title>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -57,7 +57,7 @@
         .radar-outer { position: relative; width: 100%; padding-bottom: 90%; height: 0; }
         #radarMap { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
         
-        /* 雷達扇形轉圈圈掃描特效 */
+        /* 雷達掃描特效 */
         .radar-sweep { 
             position: absolute; 
             top: -50%; left: -50%; width: 200%; height: 200%; 
@@ -73,10 +73,10 @@
             to { transform: rotate(360deg); }
         }
 
-        .chat-box { background: var(--surface2); border-radius: 8px; height: 140px; overflow-y: auto; padding: 10px; font-size: 0.85rem; display: flex; flex-direction: column; gap: 6px; }
-        .msg-line { padding: 6px 10px; border-radius: 6px; max-width: 85%; word-break: break-all; font-size: 0.8rem; }
-        .msg-me { background: var(--accent); color: #000; align-self: flex-end; }
-        .msg-other { background: #2c3e50; color: #fff; align-self: flex-start; }
+        .chat-box { background: var(--surface2); border-radius: 8px; height: 160px; overflow-y: auto; padding: 10px; font-size: 0.85rem; display: flex; flex-direction: column; gap: 8px; scroll-behavior: smooth; }
+        .msg-line { padding: 8px 12px; border-radius: 8px; max-width: 85%; word-break: break-all; font-size: 0.8rem; display: flex; flex-direction: column; }
+        .msg-me { background: var(--accent); color: #000; align-self: flex-end; border-top-right-radius: 1px; }
+        .msg-other { background: #2c3e50; color: #fff; align-self: flex-start; border-top-left-radius: 1px; }
 
         .list-row { background: var(--surface2); border-radius: 8px; padding: 10px; display: flex; align-items: center; justify-content: space-between; font-size: 0.85rem; }
         .hidden { display: none !important; }
@@ -94,7 +94,6 @@
         .tag-good { background: rgba(46,204,113,0.15); color: var(--accent); }
         .tag-bad { background: rgba(231,76,60,0.15); color: var(--safety-color); }
         
-        /* 招募看板特定樣式 */
         .notice-card { background: rgba(231, 76, 60, 0.05); border: 1px solid rgba(231, 76, 60, 0.2); border-radius: 8px; padding: 10px; display: flex; flex-direction: column; gap: 4px; }
     </style>
 </head>
@@ -105,7 +104,7 @@
     <!-- 驗證區塊 -->
     <div class="app-container" id="authPage">
         <div class="card" style="text-align:center;">
-            <h2 style="color:var(--accent)">🟢 TribeRadar 雷達完全體 V6.6</h2>
+            <h2 style="color:var(--accent)">🟢 TribeRadar 雷達完全體 V6.7</h2>
             <p style="font-size:0.75rem; color:#888;" id="connStatus">引力星網連接中...</p>
         </div>
         <div class="card">
@@ -222,7 +221,7 @@
             <div id="partyMemberList" style="display:flex; flex-direction:column; gap:6px;"></div>
         </div>
 
-        <!-- 🔊 組隊專屬頻道聊天室 -->
+        <!-- 🔊 組隊專專屬頻道聊天室 (已修正BUG) -->
         <div class="card" id="partyChatCard" style="border: 1px solid var(--team-color);">
             <div class="card-title" style="color:var(--team-color)">🔊 組隊專屬頻道聊天室</div>
             <div class="chat-box" id="partyChatBox"></div>
@@ -232,7 +231,7 @@
             </div>
         </div>
 
-        <!-- 🔥【核心修正：正在招募中的公告欄】 -->
+        <!-- 正在招募中的公告欄 -->
         <div class="card" style="border: 1px solid var(--team-color); background: rgba(231, 76, 60, 0.02);">
             <div class="card-title" style="color:var(--team-color)">📋 正在招募中的全局公告欄 (即時同步 15 KM 內)</div>
             <div id="teamNoticeBoard" style="display:flex; flex-direction:column; gap:8px; max-height:250px; overflow-y:auto;">
@@ -592,7 +591,7 @@
                 await window.dbClient.from('profiles').update({ current_team_id: targetId }).eq('current_team_id', currentUser.id);
                 await window.dbClient.from('profiles').update({ is_teaming: false }).eq('id', currentUser.id);
                 await window.dbClient.from('profiles').update({ is_teaming: true }).eq('id', targetId);
-                showToast(`已將隊伍控制權轉讓給 ${targetName}`, 'success'); refreshPartyWindow();
+                showToast(`已將隊庫控制權轉讓給 ${targetName}`, 'success'); refreshPartyWindow();
             }
         }
 
@@ -609,19 +608,16 @@
         async function addToBlacklist(blockedId) { await window.dbClient.from('blacklists').insert({ user_id: currentUser.id, blocked_id: blockedId }); showToast('🛑 已封鎖屏蔽', 'error'); await loadBlacklist(); refreshRadarMarkers(); }
         async function removeBlacklist(id) { await window.dbClient.from('blacklists').delete().eq('id', id); showToast('已解除'); await loadBlacklist(); refreshRadarMarkers(); }
 
-        /* 🟢 修改：開啟招募組隊狀態 */
         async function changeTeamStatus(enable) {
             const title = document.getElementById('teamTitle').value.trim(); const cat = document.getElementById('teamCategory').value;
             const maxMem = parseInt(document.getElementById('teamMaxMembers').value) || 5;
             if(enable && !title) return showToast('⚠️ 請輸入組隊招募名稱', 'error');
             
             if(enable) {
-                // 將自己的隊伍 ID 設為自己，並將 is_teaming 設為 true 供全局看板撈取
                 await window.dbClient.from('profiles').update({ is_teaming: true, team_name: title, team_category: cat, current_team_id: currentUser.id, team_max_members: maxMem }).eq('id', currentUser.id);
                 await window.dbClient.from('activity_history').insert({ user_id: currentUser.id, team_name: title });
                 document.getElementById('myActiveTeamStatus').textContent = `🟢 招募中: ${title}`; showToast('🔥 全局組隊招募看板上架成功！', 'success');
             } else {
-                // 解散/退出：將所有目前處於這支隊伍的組員全部強制釋放
                 await window.dbClient.from('profiles').update({ current_team_id: null, is_teaming: false, team_name: null }).eq('current_team_id', currentUser.id);
                 await window.dbClient.from('profiles').update({ current_team_id: null, is_teaming: false }).eq('id', currentUser.id);
                 document.getElementById('myActiveTeamStatus').textContent = '當前狀態：未開啟組隊';
@@ -630,15 +626,47 @@
             refreshPartyWindow(); loadTeamNoticeBoard(); loadPartyChatMessages(); loadActivityHistory(); refreshRadarMarkers();
         }
 
-        /* 🔊 聊天室內容讀取 */
+        /* 🔊 核心修正：讀取聊天室對話內容（新增發言者暱稱與精準時間日期戳記） */
         async function loadPartyChatMessages() {
             if (!currentUser) return;
             const myRes = await window.dbClient.from('profiles').select('current_team_id').eq('id', currentUser.id).single();
             const tId = myRes.data?.current_team_id; if (!tId) return;
-            const res = await window.dbClient.from('team_messages').select('*').eq('team_id', tId).order('created_at', { ascending: true });
-            let html = ''; (res.data || []).forEach(m => { html += `<div class="msg-line ${m.sender_id===currentUser.id?'msg-me':'msg-other'}">${m.message}</div>`; });
-            document.getElementById('partyChatBox').innerHTML = html;
+
+            // 利用 Supabase 的多表關聯（Join Profiles），直接抓出發言人的公開暱稱
+            const res = await window.dbClient.from('team_messages').select('*, profiles(nickname)').eq('team_id', tId).order('created_at', { ascending: true });
+            let html = ''; 
+
+            (res.data || []).forEach(m => {
+                const isMe = (m.sender_id === currentUser.id);
+                const senderName = m.profiles?.nickname || '未知組員';
+                
+                // 解析與格式化時間 (MM/DD HH:mm)
+                const d = new Date(m.created_at);
+                const month = String(d.getMonth() + 1).padStart(2, '0');
+                const date = String(d.getDate()).padStart(2, '0');
+                const hours = String(d.getHours()).padStart(2, '0');
+                const minutes = String(d.getMinutes()).padStart(2, '0');
+                const timeStr = `${month}/${date} ${hours}:${minutes}`;
+
+                html += `
+                <div class="msg-line ${isMe ? 'msg-me' : 'msg-other'}">
+                    <!-- 頂部資訊：發言者名稱與時間 -->
+                    <div style="font-size: 0.68rem; opacity: 0.7; margin-bottom: 3px; display: flex; justify-content: space-between; gap: 10px; font-weight: bold;">
+                        <span style="color: ${isMe ? '#000' : '#2ecc71'};">${senderName}</span>
+                        <span>${timeStr}</span>
+                    </div>
+                    <!-- 訊息內容主體 -->
+                    <div style="font-size: 0.82rem; line-height: 1.3;">${m.message}</div>
+                </div>`; 
+            });
+
+            const chatBox = document.getElementById('partyChatBox');
+            chatBox.innerHTML = html;
+            
+            // UX 體驗優化：每次更新資料都把捲軸強制拉到最底部，保證使用者看得到最新對話
+            chatBox.scrollTop = chatBox.scrollHeight;
         }
+
         async function sendPartyChatMessage() {
             const input = document.getElementById('partyChatInput'); const text = input.value.trim(); if(!text) return;
             const myRes = await window.dbClient.from('profiles').select('current_team_id').eq('id', currentUser.id).single();
@@ -647,27 +675,17 @@
             input.value = ''; loadPartyChatMessages();
         }
 
-        /* 🔥【核心重寫：全局即時招募公告欄數據渲染與人數進度計算】 */
         async function loadTeamNoticeBoard() {
             if(!currentUser) return;
-            // 1. 撈取所有正在開團(is_teaming = true)的隊長資料
             const allTeamsRes = await window.dbClient.from('profiles').select('*').eq('is_teaming', true);
-            // 2. 撈取所有人在線的人，用來在前端即時動態計算每支隊伍目前「已經有多少人在裡面」
             const allPlayersRes = await window.dbClient.from('profiles').select('id, current_team_id');
-            
-            const teams = allTeamsRes.data || [];
-            const players = allPlayersRes.data || [];
+            const teams = allTeamsRes.data || []; const players = allPlayersRes.data || [];
             let html = '';
 
             teams.forEach(t => {
-                // 排除黑名單內的隊長
                 if(blacklistSet.has(t.id)) return;
-
-                // 篩選地理引力距離在 15 公里之內的人
                 const dist = calcDistance(currentPosition.lat, currentPosition.lng, t.current_lat, t.current_lng);
                 if(dist > 15000) return;
-
-                // 即時動態統計此隊伍當前的實際成員人數
                 const currentMemberCount = players.filter(p => p.current_team_id === t.id).length;
                 const maxMembers = t.team_max_members || 5;
 
@@ -683,18 +701,13 @@
                     </div>
                 </div>`;
             });
-
             document.getElementById('teamNoticeBoard').innerHTML = html || '<div style="font-size:0.75rem; text-align:center; padding:12px; color:#888;">📡 附近 15km 內暫無公開招募中的組隊訊號。</div>';
         }
 
-        /* 🟢 玩家加入別人的隊伍邏輯 */
         async function joinTeamGroup(targetTeamId) {
             if(!currentUser) return;
-            // 檢查該隊伍人數是否已滿
             const allPlayersRes = await window.dbClient.from('profiles').select('id, current_team_id');
             const currentMembers = (allPlayersRes.data || []).filter(p => p.current_team_id === targetTeamId);
-            
-            // 撈取隊長的最大人數設定
             const leaderRes = await window.dbClient.from('profiles').select('team_max_members').eq('id', targetTeamId).single();
             const maxAllowed = leaderRes.data?.team_max_members || 5;
 
@@ -702,10 +715,8 @@
                 return showToast('❌ 該隊伍招募人數已達上限，無法加入！', 'error');
             }
 
-            // 更新自己的 current_team_id
             await window.dbClient.from('profiles').update({ current_team_id: targetTeamId, is_teaming: false }).eq('id', currentUser.id);
             showToast('🎉 成功加入隊伍頻道！開啟專屬團隊雷達與通訊。', 'success');
-            
             refreshPartyWindow(); loadTeamNoticeBoard(); loadPartyChatMessages(); refreshRadarMarkers();
         }
 
