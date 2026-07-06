@@ -6,6 +6,7 @@
     <title>🟢 TribeRadar 終極商機引力雷達 V6.9 - 終極完全體版</title>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <!-- 🟢 使用 Google Maps API 渲染高科技地圖 -->
     <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyACxMPE_nMWpxsNNB_fW2TplflJJSI6sOs&libraries=places&language=zh-TW"></script>
 
     <style>
@@ -32,6 +33,13 @@
         .card { background: var(--surface); border-radius: var(--radius); border: 1px solid var(--border); padding: 16px; display: flex; flex-direction: column; gap: 12px; position: relative; overflow: hidden; }
         .card-title { font-size: 0.95rem; font-weight: 700; color: #fff; display: flex; align-items: center; justify-content: space-between; }
         
+        /* 📱 登入頁專屬高科技視覺設計 */
+        .landing-header { text-align: center; padding: 24px 10px 10px 10px; }
+        .landing-logo { font-size: 2.2rem; font-weight: 900; color: var(--accent); letter-spacing: 2px; margin-bottom: 4px; text-shadow: 0 0 10px rgba(46, 204, 113, 0.3); }
+        .landing-slogan { font-size: 1.2rem; font-weight: 700; color: #ffffff; margin-bottom: 12px; }
+        .landing-tags { display: flex; justify-content: center; gap: 8px; font-size: 0.85rem; color: #bbb; font-weight: 500; background: rgba(255,255,255,0.03); padding: 8px 14px; border-radius: 30px; border: 1px solid rgba(255,255,255,0.05); }
+        .landing-tags span { color: var(--accent); font-weight: bold; }
+
         .summary-banner { background: linear-gradient(135deg, #111, var(--surface2)); border-left: 5px solid var(--accent); padding: 14px; border-radius: 8px; display: flex; flex-direction: column; gap: 6px; }
         .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.75rem; color: #bbb; }
         .summary-grid b { color: #fff; }
@@ -99,22 +107,31 @@
 
     <div class="toast-container" id="toastContainer"></div>
 
+    <!-- 🟢 重新設計：具有高辨識度導引文案的驗證與登入區 -->
     <div class="app-container" id="authPage">
-        <div class="card" style="text-align:center;">
-            <h2 style="color:var(--accent)">🟢 TribeRadar 雷達完全體 V6.9</h2>
-            <p style="font-size:0.75rem; color:#888;" id="connStatus">引力星網連接中...</p>
+        <div class="landing-header">
+            <div class="landing-logo">TribeRadar</div>
+            <div class="landing-slogan">找到附近對的人</div>
+            <div class="landing-tags">
+                交朋友 <span>|</span> 找伴侶 <span>|</span> 揪活動 <span>|</span> 談合作
+            </div>
         </div>
-        <div class="card">
+
+        <div class="card" style="margin-top: 10px;">
             <input type="email" id="authEmail" placeholder="Email 帳號">
             <input type="password" id="authPassword" placeholder="密碼 (至少6位碼)">
             <div class="hidden" id="nickGroup"><input type="text" id="authNickname" placeholder="設定您的雷達公開暱稱"></div>
-            <button class="btn btn-primary" onclick="handleAuth()">進入引力雷達</button>
+            <button class="btn btn-primary" onclick="handleAuth()">找到需要你的人</button>
             <button class="btn btn-outline" id="authToggleBtn" onclick="toggleAuthMode()">初次探索？切換註冊</button>
         </div>
+        
+        <div style="text-align:center; font-size:0.75rem; color:#555;" id="connStatus">引力星網連接中...</div>
     </div>
 
+    <!-- 主頁面區塊 -->
     <div class="app-container hidden" id="mainApp">
         
+        <!-- 今日引力數據綜覽面板 -->
         <div class="summary-banner">
             <div style="font-size:0.85rem; font-weight:bold; color:#fff; display:flex; justify-content:space-between; align-items:center;">
                 <span>📡 今日地緣引力綜覽數據摘要</span>
@@ -128,6 +145,7 @@
             </div>
         </div>
 
+        <!-- AI 智能精準媒合推薦 -->
         <div class="card" style="border: 1px solid var(--dashboard-color); background: rgba(155, 89, 182, 0.03);">
             <div class="card-title" style="color:var(--dashboard-color)">🧠 AI 智能商機與人脈精準媒合推薦</div>
             <div class="ai-match-box" id="aiBizRecommend">
@@ -140,6 +158,7 @@
             </div>
         </div>
 
+        <!-- 🗺️ 地圖盤面卡片 -->
         <div class="card radar-panel">
             <div class="radar-outer">
                 <div id="radarMap"></div>
@@ -147,6 +166,7 @@
             </div>
         </div>
 
+        <!-- 操縱控制台 -->
         <div class="card">
             <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
                 <button class="btn btn-primary" id="trackBtn" onclick="toggleTracking(); logFeatureClick('啟動雷達掃描');" style="flex:1;">▶️ 啟動雷達實時掃描</button>
@@ -157,6 +177,7 @@
             </div>
         </div>
 
+        <!-- 好友名單群組區塊 -->
         <div class="card" style="border: 1px solid var(--friend-color);">
             <div class="card-title" style="color:var(--friend-color)">👥 我的雷達緊密好友名單 (Friends List)</div>
             <div id="friendListContainer" style="display:flex; flex-direction:column; gap:6px; max-height:160px; overflow-y:auto;">
@@ -168,6 +189,7 @@
             </div>
         </div>
 
+        <!-- 商機需求市場設定 -->
         <div class="card" style="border: 1px solid var(--market-color); background: rgba(230,126,34,0.01);">
             <div class="card-title" style="color:var(--market-color)">🤝 附近的人脈與商機需求市場 (Marketplace)</div>
             <div style="display:flex; flex-direction:column; gap:6px;">
@@ -195,20 +217,23 @@
                         </select>
                     </div>
                 </div>
-                <button class="btn btn-primary" style="background:var(--market-color); color:#fff; border-radius:8px; padding:10px;" onclick="saveMarketProfile(); logFeatureClick('更新商機需求');">發布到附近人脈需求市場</button>
+                <button class="btn btn-primary" style="background:var(--market-color); color:#fff; border-radius:8px; padding:10px;" onclick="saveMarketProfile(); logFeatureClick('更新商商機需求');">發布到附近人脈需求市場</button>
             </div>
         </div>
 
+        <!-- 👀 誰看過我 -->
         <div class="card" style="border: 1px solid var(--vip-color);">
             <div class="card-title" style="color:var(--vip-color)">👀 誰看過我的引力檔案 (最近 7 天)</div>
             <div id="viewerList" style="display:flex; flex-direction:column; gap:6px; font-size:0.8rem;"></div>
         </div>
 
+        <!-- 🛡️ 當前隊伍成員管理列表 -->
         <div class="card" id="partyWindowCard" style="border: 2px dashed var(--team-color);">
             <div class="card-title" style="color:var(--team-color)">🛡️ 當前隊伍成員管理列表 (Party Window)</div>
             <div id="partyMemberList" style="display:flex; flex-direction:column; gap:6px;"></div>
         </div>
 
+        <!-- 🔊 組隊專屬頻道聊天室 (V6.9 偵錯與防禦完全體) -->
         <div class="card" id="partyChatCard" style="border: 1px solid var(--team-color);">
             <div class="card-title" style="color:var(--team-color)">🔊 組隊專屬頻道聊天室</div>
             <div class="chat-box" id="partyChatBox"></div>
@@ -218,6 +243,7 @@
             </div>
         </div>
 
+        <!-- 正在招募中的公告欄 -->
         <div class="card" style="border: 1px solid var(--team-color); background: rgba(231, 76, 60, 0.02);">
             <div class="card-title" style="color:var(--team-color)">📋 正在招募中的全局公告欄 (即時同步 15 KM 內)</div>
             <div id="teamNoticeBoard" style="display:flex; flex-direction:column; gap:8px; max-height:250px; overflow-y:auto;">
@@ -225,6 +251,7 @@
             </div>
         </div>
 
+        <!-- 揪團控制台 -->
         <div class="card">
             <div class="card-title" style="color: var(--team-color);">🔥 我的即時組隊揪團看板</div>
             <div style="display:flex; flex-direction:column; gap:6px;">
@@ -246,16 +273,19 @@
             <div id="myActiveTeamStatus" style="font-size:0.8rem; text-align:center; font-weight:bold; color:#fff;">當前狀態：未開啟組隊</div>
         </div>
 
+        <!-- 📅 歷史活動紀錄卡片 -->
         <div class="card" style="border: 1px solid var(--accent);">
             <div class="card-title" style="color:var(--accent);">📅 我的歷史活動與成團紀錄</div>
             <div id="activityHistoryList" style="display:flex; flex-direction:column; gap:6px;"></div>
         </div>
 
+        <!-- 🛡️ 黑名單屏蔽管理列表 -->
         <div class="card" style="border: 1px solid var(--safety-color);">
             <div class="card-title" style="color:var(--safety-color);">🛡️ 安全管理：黑名單防護屏蔽列表</div>
             <div id="blacklistContainer" style="display:flex; flex-direction:column; gap:6px;"></div>
         </div>
 
+        <!-- 定點目標區域管理資料 -->
         <div class="card" style="border: 1px solid var(--friend-color);">
             <div class="card-title" style="color:var(--friend-color)">📍 定點目標區域管理資料</div>
             <div id="targetList" style="display:flex; flex-direction:column; gap:6px; max-height:150px; overflow-y:auto;">
@@ -269,6 +299,7 @@
 
     </div>
 
+    <!-- 彈窗：評價機制 -->
     <div id="ratingModal" class="hidden" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:20000; display:flex; align-items:center; justify-content:center; padding:20px;">
         <div class="card" style="width:100%; max-width:400px; background:var(--surface);">
             <div class="card-title" style="color:var(--vip-color)">⭐ 提交匿名信任度綜合評價</div>
@@ -314,7 +345,11 @@
             setTimeout(() => t.remove(), 5000);
         }
 
-        function toggleAuthMode() { isRegister = !isRegister; document.getElementById('nickGroup').classList.toggle('hidden', !isRegister); }
+        function toggleAuthMode() { 
+            isRegister = !isRegister; 
+            document.getElementById('nickGroup').classList.toggle('hidden', !isRegister); 
+            document.getElementById('authToggleBtn').textContent = isRegister ? "已有帳號？返回登入" : "初次探索？切換註冊";
+        }
         
         function calcDistance(lat1, lon1, lat2, lon2) {
             const R = 6371000; const dLat = (lat2 - lat1) * Math.PI / 180; const dLon = (lon2 - lon1) * Math.PI / 180;
@@ -581,7 +616,7 @@
             document.getElementById('summaryAiMatches').textContent = countAiMatches;
 
             if(bestBizMatch) document.getElementById('aiBizText').innerHTML = `💡 發現附近 <b>${bestBizMatch.nickname}</b> 需要你的 <b>「${myProvide}」</b> 技能！`;
-            if(bestPeopleMatch) document.getElementById('aiPeopleText').innerHTML = `🔥 推薦配對：<b>${bestPeopleMatch.nickname}</b> 持有 you 需要的 <b>「${myNeed}」</b> 資源！`;
+            if(bestPeopleMatch) document.getElementById('aiPeopleText').innerHTML = `🔥 推薦配對：<b>${bestPeopleMatch.nickname}</b> 持有你需要的 <b>「${myNeed}」</b> 資源！`;
         }
 
         async function loadStaticTargets() {
